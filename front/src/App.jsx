@@ -35,7 +35,7 @@ function AppRouter() {
       
       {/* Protected Routes */}
       <Route path="/student/onboarding" element={
-       <StudentOnboarding />
+        <ProtectedRoute><StudentOnboarding /></ProtectedRoute>
       } />
       <Route path="/landlord/onboarding" element={
         <ProtectedRoute><LandlordOnboarding /></ProtectedRoute>

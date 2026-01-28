@@ -10,7 +10,7 @@
     --foreground: 0 0% 12%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 12%;
-    --primary: 140 20% 59%;
+    --primary: 42 98% 52%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 42%;
     --secondary-foreground: 0 0% 100%;
@@ -18,11 +18,11 @@
     --destructive-foreground: 0 0% 100%;
     --muted: 0 0% 42%;
     --muted-foreground: 0 0% 100%;
-    --accent: 140 20% 59%;
+    --accent: 42 98% 52%;
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 140 20% 59%;
+    --ring: 42 98% 52%;
   }
 
   .dark {
@@ -30,7 +30,7 @@
     --foreground: 0 0% 98%;
     --card: 0 0% 15%;
     --card-foreground: 0 0% 98%;
-    --primary: 140 20% 59%;
+    --primary: 42 98% 52%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 63%;
     --secondary-foreground: 0 0% 10%;
@@ -38,11 +38,11 @@
     --destructive-foreground: 0 0% 100%;
     --muted: 0 0% 63%;
     --muted-foreground: 0 0% 10%;
-    --accent: 140 20% 59%;
+    --accent: 42 98% 52%;
     --accent-foreground: 0 0% 100%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 140 20% 59%;
+    --ring: 42 98% 52%;
   }
 
   body {
@@ -80,7 +80,7 @@
     font-size: 1em;
     font-weight: 500;
     font-family: inherit;
-    background-color: hsl(var(--primary));
+    background-color: hsl(var(--primary));  
     color: hsl(var(--primary-foreground));
     cursor: pointer;
     transition: border-color 0.25s;
