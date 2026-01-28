@@ -193,15 +193,15 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-5xl font-bold text-primary mb-2" style={{ fontFamily: 'Outfit' }}>95%</div>
+              <div className="text-5xl font-bold mb-2" style={{ fontFamily: 'Outfit', color: '#8fb895' }}>95%</div>
               <p className="text-muted-foreground">Taux de satisfaction</p>
             </div>
             <div>
-              <div className="text-5xl font-bold text-primary mb-2" style={{ fontFamily: 'Outfit' }}>2500+</div>
+              <div className="text-5xl font-bold mb-2" style={{ fontFamily: 'Outfit', color: '#8fb895' }}>2500+</div>
               <p className="text-muted-foreground">Étudiants logés</p>
             </div>
             <div>
-              <div className="text-5xl font-bold text-primary mb-2" style={{ fontFamily: 'Outfit' }}>7j</div>
+              <div className="text-5xl font-bold mb-2" style={{ fontFamily: 'Outfit', color: '#8fb895' }}>7j</div>
               <p className="text-muted-foreground">Temps moyen de matching</p>
             </div>
           </div>
