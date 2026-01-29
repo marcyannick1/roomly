@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import UploadFile, File, Depends
+from typing import List
+
 
 from app.db.session import get_db
 from app.schemas.listing import ListingCreate, ListingOut
@@ -12,10 +15,11 @@ router = APIRouter(
 
 @router.post("/", response_model=ListingOut, status_code=status.HTTP_201_CREATED)
 async def create_listing(
-    listing: ListingCreate,
+    listing: ListingCreate = Depends(),
+    photos: List[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    return await listing_controller.create_listing(db, listing)
+    return await listing_controller.create_listing(db, listing, photos)
 
 
 @router.get("/{listing_id}", response_model=ListingOut)
