@@ -1,0 +1,11 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- House shape with door -->
+  <path d="M60 20L20 50V95C20 97.7614 22.2386 100 25 100H50V75C50 72.2386 52.2386 70 55 70H65C67.7614 70 70 72.2386 70 75V100H95C97.7614 100 100 97.7614 100 95V50L60 20Z" fill="#fec629"/>
+  
+  <!-- Heart shape in the middle -->
+  <path d="M60 58C60 58 48 50 42 54C36 58 36 66 42 72L60 86L78 72C84 66 84 58 78 54C72 50 60 58 60 58Z" fill="#FAF7F0"/>
+  
+  <!-- Window -->
+  <rect x="35" y="60" width="10" height="10" rx="2" fill="#FAF7F0"/>
+  <rect x="75" y="60" width="10" height="10" rx="2" fill="#FAF7F0"/>
+</svg>
