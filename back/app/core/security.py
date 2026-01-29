@@ -1,10 +1,13 @@
 from passlib.hash import bcrypt
 from datetime import datetime, timedelta
 import jwt
+from fastapi.security import HTTPBearer
 
 SECRET_KEY = "change_this_to_a_random_secret"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60*24
+
+security = HTTPBearer()
 
 def hash_password(password: str) -> str:
     return bcrypt.hash(password[:72])

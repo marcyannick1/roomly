@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createListing, getListing, updateListing, getCurrentUser } from '@/lib/api';
 import { toast } from 'sonner';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ImagePlus, X } from 'lucide-react';
 
 export default function ListingForm() {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ export default function ListingForm() {
   
   const [listing, setListing] = useState({
     listing_id: `listing_${Date.now()}`,
-    landlord_id: '',
+    landlord_id: null,
     title: '',
     address: {
       street: '',
@@ -25,20 +25,18 @@ export default function ListingForm() {
       postal_code: ''
     },
     type: 'studio',
-    surface: '',
+    surface: 0,
     rooms: 1,
     furnished: true,
-    rent: '',
-    charges: '',
-    deposit: '',
-    available_from: '',
+    rent: 0,
+    charges: 0,
+    deposit: 0,
+    available_from: null,
     photos: [],
     amenities: [],
     description: '',
     tenant_criteria: {},
-    status: 'published',
-    created_at: new Date().toISOString(),
-    liked_by: []
+    status: 'published'
   });
 
   useEffect(() => {
@@ -49,10 +47,11 @@ export default function ListingForm() {
     try {
       if (!user) {
         const response = await getCurrentUser();
-        setUser(response.data);
-        setListing(prev => ({ ...prev, landlord_id: response.data.user_id }));
+        const userData = response.data.user || response.data;
+        setUser(userData);
+        setListing(prev => ({ ...prev, landlord_id: userData.id }));
       } else {
-        setListing(prev => ({ ...prev, landlord_id: user.user_id }));
+        setListing(prev => ({ ...prev, landlord_id: user.id }));
       }
 
       if (listingId) {
@@ -69,19 +68,78 @@ export default function ListingForm() {
     setLoading(true);
 
     try {
+      // Nettoyer les données avant envoi
+      const cleanedListing = {
+        listing_id: listing.listing_id,
+        landlord_id: listing.landlord_id,
+        title: listing.title,
+        description: listing.description,
+        type: listing.type,
+        surface: parseInt(listing.surface) || 0,
+        rooms: parseInt(listing.rooms) || 1,
+        furnished: listing.furnished === true || listing.furnished === 'true',
+        rent: parseFloat(listing.rent) || 0,
+        charges: parseFloat(listing.charges) || 0,
+        deposit: parseFloat(listing.deposit) || 0,
+        available_from: listing.available_from || null,
+        address: {
+          street: listing.address.street || '',
+          city: listing.address.city || '',
+          postal_code: listing.address.postal_code || ''
+        },
+        amenities: listing.amenities || [],
+        photos: listing.photos || [],
+        tenant_criteria: listing.tenant_criteria || {},
+        status: listing.status || 'published'
+      };
+
       if (listingId) {
-        await updateListing(listingId, listing);
+        await updateListing(listingId, cleanedListing);
         toast.success('Annonce mise à jour !');
       } else {
-        await createListing(listing);
+        await createListing(cleanedListing);
         toast.success('Annonce créée !');
       }
       navigate('/landlord/dashboard');
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde');
+      console.error(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhotosChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    try {
+      const base64Images = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+
+      setListing((prev) => ({
+        ...prev,
+        photos: [...(prev.photos || []), ...base64Images]
+      }));
+    } catch (error) {
+      toast.error('Erreur lors du chargement des images');
+    }
+  };
+
+  const removePhoto = (index) => {
+    setListing((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
   };
 
   return (
@@ -211,6 +269,54 @@ export default function ListingForm() {
                 className="mt-2 rounded-xl min-h-32"
                 required
               />
+            </div>
+
+            <div>
+              <Label>Photos du logement</Label>
+              <div className="mt-3 rounded-2xl border border-dashed border-border/60 p-6 bg-muted/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-background flex items-center justify-center shadow-sm">
+                    <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Ajoute des photos attractives</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG — plusieurs images possibles</p>
+                  </div>
+                </div>
+                <Input
+                  data-testid="listing-photos-input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotosChange}
+                  className="h-12 rounded-xl bg-background"
+                />
+              </div>
+
+              {listing.photos?.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {listing.photos.map((photo, index) => (
+                    <div
+                      key={`${photo}-${index}`}
+                      className="relative rounded-2xl overflow-hidden border border-border/50 shadow-sm"
+                    >
+                      <img
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        className="h-32 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-2 right-2 rounded-full bg-background/80 backdrop-blur p-1 shadow"
+                        aria-label="Supprimer la photo"
+                      >
+                        <X className="h-4 w-4 text-foreground" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>

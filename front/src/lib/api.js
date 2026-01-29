@@ -3,8 +3,23 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: API_URL,
   withCredentials: true,
+});
+
+// Add token to requests
+api.interceptors.request.use((config) => {
+  // Get token from cookie
+  const token = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('session_token='))
+    ?.split('=')[1];
+  
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
+  return config;
 });
 
 // Auth
@@ -13,6 +28,9 @@ export const login = (data) => api.post('/auth/login', data);
 export const googleCallback = (sessionId) => api.post('/auth/google/callback', { session_id: sessionId });
 export const getCurrentUser = () => api.get('/auth/me');
 export const logout = () => api.post('/auth/logout');
+
+// Users
+export const getUserById = (userId) => api.get(`/users/${userId}`);
 
 // Profiles
 export const getStudentProfile = (userId) => api.get(`/students/profile/${userId}`);

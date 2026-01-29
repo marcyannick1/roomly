@@ -20,13 +20,18 @@ export default function LandlordDashboard() {
 
   const loadData = async () => {
     try {
-      if (!user) {
+      let currentUser = user;
+      if (!currentUser) {
         const response = await getCurrentUser();
-        setUser(response.data);
+        currentUser = response.data.user || response.data;
+        setUser(currentUser);
       }
-      
-      const listingsResponse = await getLandlordListings(user?.user_id || location.state?.user?.user_id);
-      setListings(listingsResponse.data);
+
+      const landlordId = currentUser?.id || location.state?.user?.id;
+      if (landlordId) {
+        const listingsResponse = await getLandlordListings(landlordId);
+        setListings(listingsResponse.data);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -80,7 +85,7 @@ export default function LandlordDashboard() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => navigate('/student/profile')}
+              onClick={() => user?.id && navigate(`/profile/${user.id}`)}
               data-testid="profile-btn"
               className="rounded-full"
             >
@@ -141,7 +146,7 @@ export default function LandlordDashboard() {
                     className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all"
                     data-testid={`listing-${listing.listing_id}`}
                   >
-                    <div className="aspect-video bg-muted relative">
+                    <div className="h-64 bg-muted relative">
                       {listing.photos?.[0] ? (
                         <img
                           src={listing.photos[0]}
@@ -153,24 +158,31 @@ export default function LandlordDashboard() {
                           <Home className="w-16 h-16 text-muted-foreground" />
                         </div>
                       )}
-                      
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
                       {listing.liked_by?.length > 0 && (
-                        <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold">
+                        <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow">
                           {listing.liked_by.length} like{listing.liked_by.length > 1 ? 's' : ''}
                         </div>
                       )}
+
+                      <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                        <h3 className="text-lg font-semibold" style={{ fontFamily: 'Outfit' }}>
+                          {listing.title}
+                        </h3>
+                        <div className="flex items-center justify-between text-sm opacity-90">
+                          <span>{listing.surface}m² • {listing.rooms} pièce(s)</span>
+                          <span className="text-lg font-bold">{listing.rent}€</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="p-4">
-                      <h3 className="text-lg font-bold text-foreground mb-1" style={{ fontFamily: 'Outfit' }}>
-                        {listing.title}
-                      </h3>
-                      <p className="text-primary font-semibold mb-2">
-                        {listing.rent}€/mois
-                      </p>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {listing.surface}m² • {listing.rooms} pièce(s)
-                      </p>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                        <span className="capitalize">{listing.type}</span>
+                        <span>{listing.furnished ? 'Meublé' : 'Non meublé'}</span>
+                      </div>
                       
                       <div className="flex gap-2">
                         <Button
@@ -182,6 +194,15 @@ export default function LandlordDashboard() {
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           Voir les profils ({listing.liked_by?.length || 0})
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => navigate(`/listing/${listing.listing_id}`)}
+                          data-testid={`listing-details-${listing.listing_id}`}
+                          className="flex-1 rounded-full"
+                        >
+                          Détails
                         </Button>
                       </div>
                     </div>

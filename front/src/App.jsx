@@ -16,6 +16,7 @@ import LandlordDashboard from "@/pages/LandlordDashboard";
 import ListingForm from "@/pages/ListingForm";
 import ListingDetail from "@/pages/ListingDetail";
 import Messages from "@/pages/Messages";
+import UserProfile from "@/pages/UserProfile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 function AppRouter() {
@@ -54,6 +55,9 @@ function AppRouter() {
       } />
       <Route path="/listing/:listingId" element={
         <ProtectedRoute><ListingDetail /></ProtectedRoute>
+      } />
+      <Route path="/profile/:userId" element={
+        <ProtectedRoute><UserProfile /></ProtectedRoute>
       } />
       <Route path="/messages/:matchId" element={
         <ProtectedRoute><Messages /></ProtectedRoute>
