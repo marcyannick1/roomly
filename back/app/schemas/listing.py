@@ -3,7 +3,7 @@ from datetime import date
 from typing import Optional
 
 
-class RoomBase(BaseModel):
+class ListingBase(BaseModel):
     title: str
     description: Optional[str] = None
 
@@ -37,10 +37,10 @@ class RoomBase(BaseModel):
     parking: bool = False
     elevator: bool = False
 
-class RoomCreate(RoomBase):
+class ListingCreate(ListingBase):
     owner_id: int
 
-class RoomOut(RoomBase):
+class ListingOut(ListingBase):
     id: int
     owner_id: int
 

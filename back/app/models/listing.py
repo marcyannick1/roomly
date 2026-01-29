@@ -1,11 +1,13 @@
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, Date, ForeignKey
 )
+from sqlalchemy.orm import relationship
+
 from app.db.base import Base
 
 
-class Room(Base):
-    __tablename__ = "rooms"
+class Listing(Base):
+    __tablename__ = "listings"
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -38,3 +40,5 @@ class Room(Base):
     elevator = Column(Boolean, default=False)
 
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    photos = relationship("ListingPhoto", back_populates="listing", cascade="all, delete-orphan")

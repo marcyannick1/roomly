@@ -39,7 +39,8 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 from app.db.base import Base
 from app.models.user import User
-from app.models.room import Room
+from app.models.listing import Listing
+from app.models.listing_photo import ListingPhoto
 from app.models.student import Student
 from app.models.landlord import Landlord
 target_metadata = Base.metadata
