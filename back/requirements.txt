@@ -10,3 +10,4 @@ pyjwt
 python-multipart
 email-validator
 python-dotenv
+alembic
