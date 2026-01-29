@@ -81,6 +81,9 @@
     font-weight: 500;
     font-family: inherit;
     background-color: hsl(var(--primary));  
+    /* background-color: #4F6F52;   */
+
+
     color: hsl(var(--primary-foreground));
     cursor: pointer;
     transition: border-color 0.25s;
