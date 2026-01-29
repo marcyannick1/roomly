@@ -1,7 +1,8 @@
 from pydantic import BaseModel
+from datetime import date, datetime
 from typing import Optional, List, Dict
-from datetime import datetime
 
+# Schemas pour les annonces (Listings)
 class AddressSchema(BaseModel):
     street: Optional[str] = None
     city: Optional[str] = None
@@ -52,15 +53,41 @@ class ListingUpdate(BaseModel):
     tenant_criteria: Optional[Dict] = None
     status: Optional[str] = None
 
-# Legacy schemas for compatibility
-class RoomCreate(BaseModel):
+# Schemas pour les chambres (Rooms)
+class RoomBase(BaseModel):
     title: str
-    description: str | None = None
+    description: Optional[str] = None
     price: float
+    surface: Optional[float] = None
+    charges_included: bool = False
+    deposit: Optional[float] = None
+    city: str
+    address: Optional[str] = None
+    postal_code: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    room_type: str
+    furnished: bool = False
+    floor: Optional[int] = None
+    total_floors: Optional[int] = None
+    available_from: Optional[date] = None
+    min_duration_months: Optional[int] = None
+    wifi: bool = False
+    washing_machine: bool = False
+    kitchen: bool = False
+    parking: bool = False
+    elevator: bool = False
+
+class RoomCreate(RoomBase):
     owner_id: int
 
-class RoomOut(RoomCreate):
+class RoomOut(RoomBase):
     id: int
+    owner_id: int
 
     class Config:
+<<<<<<< HEAD
         from_attributes = True
+=======
+        from_attributes = True  # pydantic v2
+>>>>>>> main

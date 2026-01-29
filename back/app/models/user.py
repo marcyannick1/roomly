@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Boolean, Integer
-from sqlalchemy.ext.declarative import declarative_base
+from app.db.base import Base
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
@@ -11,4 +11,12 @@ class User(Base):
     name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_landlord = Column(Boolean, default=False)
+
     provider = Column(String, default="email")
+    # Nouveaux champs
+    telephone = Column(String, nullable=True)
+    photo = Column(String, nullable=True)  # URL ou chemin
+
+    # Relations
+    student = relationship("Student", back_populates="user", uselist=False)
+    landlord = relationship("Landlord", back_populates="user", uselist=False)
