@@ -1,29 +1,44 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
-from datetime import datetime
+from sqlalchemy import (
+    Column, Integer, String, Float, Boolean, Date, ForeignKey
+)
+from sqlalchemy.orm import relationship
+
 from app.db.base import Base
+
 
 class Listing(Base):
     __tablename__ = "listings"
 
     id = Column(Integer, primary_key=True, index=True)
-    listing_id = Column(String, unique=True, index=True, nullable=False)
-    landlord_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    type = Column(String, default="studio")  # studio, t1, t2, colocation
-    surface = Column(Integer, nullable=False)
-    rooms = Column(Integer, default=1)
-    furnished = Column(Boolean, default=True)
-    rent = Column(Float, nullable=False)
-    charges = Column(Float, default=0)
-    deposit = Column(Float, nullable=False)
-    available_from = Column(DateTime, nullable=True)
-    address = Column(JSON, nullable=True)  # {street, city, postal_code}
-    amenities = Column(JSON, default=[])
-    photos = Column(JSON, default=[])
-    tenant_criteria = Column(JSON, default={})
-    status = Column(String, default="published")  # published, draft, archived
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    liked_by = Column(JSON, default=[])
 
+    title = Column(String, nullable=False)
+    description = Column(String)
+
+    price = Column(Float, nullable=False)
+    surface = Column(Float)
+    charges_included = Column(Boolean, default=False)
+    deposit = Column(Float)
+
+    city = Column(String, nullable=False)
+    address = Column(String)
+    postal_code = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+    room_type = Column(String, nullable=False)
+    furnished = Column(Boolean, default=False)
+    floor = Column(Integer)
+    total_floors = Column(Integer)
+
+    available_from = Column(Date)
+    min_duration_months = Column(Integer)
+
+    wifi = Column(Boolean, default=False)
+    washing_machine = Column(Boolean, default=False)
+    kitchen = Column(Boolean, default=False)
+    parking = Column(Boolean, default=False)
+    elevator = Column(Boolean, default=False)
+
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    photos = relationship("ListingPhoto", back_populates="listing", cascade="all, delete-orphan")
