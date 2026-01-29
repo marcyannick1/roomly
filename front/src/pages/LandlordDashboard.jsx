@@ -3,7 +3,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function LandlordDashboard() {
   const navigate = useNavigate();
@@ -18,6 +19,13 @@ export default function LandlordDashboard() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add('has-dashboard-sidebar');
+    return () => {
+      document.body.classList.remove('has-dashboard-sidebar');
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       let currentUser = user;
@@ -26,6 +34,8 @@ export default function LandlordDashboard() {
         currentUser = response.data.user || response.data;
         setUser(currentUser);
       }
+      
+      console.log('Current user in LandlordDashboard:', currentUser);
 
       const landlordId = currentUser?.id || location.state?.user?.id;
       if (landlordId) {
@@ -63,48 +73,101 @@ export default function LandlordDashboard() {
     navigate('/');
   };
 
+  const navItems = [
+    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
+    { id: 'students', icon: Eye, label: 'Intéressés', path: null },
+    { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
+    { id: 'profile', icon: User, label: 'Profil', path: null },
+    { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Roomly" className="w-10 h-10" />
-            <span className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>Roomly</span>
+    <div className="min-h-screen bg-white flex">
+      {/* Sidebar */}
+      <aside className="dashboard-sidebar w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50">
+        {/* Logo & User Profile */}
+        <div className="p-6 border-b border-black/10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-2">
+              <img src="/logo.svg" alt="Roomly" className="w-full h-full" />
+            </div>
+            <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
           </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant={view === 'listings' ? 'default' : 'ghost'}
-              onClick={() => setView('listings')}
-              data-testid="view-listings-btn"
-              className="rounded-full"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Mes annonces
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => user?.id && navigate(`/profile/${user.id}`)}
-              data-testid="profile-btn"
-              className="rounded-full"
-            >
-              <User className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              data-testid="logout-btn"
-              className="rounded-full"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+
+          {/* User Profile Card */}
+          <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[#212220] truncate">{user?.name || 'Utilisateur'}</p>
+                <p className="text-xs text-[#212220]/70 truncate">{user?.email || ''}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </header>
+
+        {/* Navigation Items */}
+        <nav className="flex-1 py-4 px-3">
+          <div className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = view === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                    } else if (item.id === 'students') {
+                      setView('students');
+                    } else if (item.id === 'profile' && user?.id) {
+                      navigate(`/profile/${user.id}`);
+                    } else if (item.id === 'settings') {
+                      toast.error('Paramètres en cours de développement');
+                    }
+                  }}
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${
+                    isActive
+                      ? 'bg-[#212220] text-[#fec629] shadow-lg'
+                      : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
+                  }`}
+                  data-testid={`nav-${item.id}`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'}`} />
+                  <span className="font-medium">{item.label}</span>
+
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavLandlord"
+                      className="absolute inset-0 bg-[#212220] rounded-xl -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-black/10">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/5 hover:bg-black/10 text-[#212220]/70 hover:text-[#212220] transition-all duration-200"
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Déconnexion</span>
+          </button>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <main className="flex-1 ml-72 bg-white">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {view === 'listings' && (
           <>
             <div className="flex justify-between items-center mb-8">
@@ -298,6 +361,7 @@ export default function LandlordDashboard() {
           </>
         )}
       </div>
+      </main>
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateStudentProfile } from '@/lib/api';
+import { getCurrentUser, updateStudentProfile } from '@/lib/api';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 
@@ -14,7 +14,7 @@ export default function StudentOnboarding() {
   
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState({
-    user_id: user?.user_id,
+    user_id: user?.id ?? user?.user_id,
     first_name: '',
     last_name: '',
     age: '',
@@ -37,6 +37,24 @@ export default function StudentOnboarding() {
     completed: false
   });
 
+  useEffect(() => {
+    if (profile.user_id) return;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await getCurrentUser();
+        const id = data?.user?.id;
+        if (id) {
+          setProfile((prev) => ({ ...prev, user_id: id }));
+        }
+      } catch (error) {
+        console.error('Erreur chargement utilisateur:', error);
+      }
+    };
+
+    loadUser();
+  }, [profile.user_id]);
+
   const handleNext = () => {
     if (step < 4) setStep(step + 1);
     else handleSubmit();
@@ -44,10 +62,31 @@ export default function StudentOnboarding() {
 
   const handleSubmit = async () => {
     try {
-      await updateStudentProfile({ ...profile, completed: true });
+      if (!profile.user_id) {
+        toast.error("Utilisateur introuvable. Veuillez vous reconnecter.");
+        return;
+      }
+
+      // Transformer les données au format API attendu
+      const studentData = {
+        user_id: profile.user_id,
+        room_type: profile.preferences?.type || 'studio',
+        furnished: profile.preferences?.furnished || false,
+        smoking: profile.lifestyle?.smoking === 'yes',
+        pets: profile.lifestyle?.pets === 'yes',
+        noise_level: profile.lifestyle?.noise_level || 5,
+        max_budget: parseFloat(profile.budget) || 0,
+        guarantor_income: parseFloat(profile.guarantor_income) || 0,
+        university: profile.university || '',
+        study_level: profile.education_level || '',
+        passions: '',
+      };
+      
+      await updateStudentProfile(studentData);
       toast.success('Profil complété !');
       navigate('/student/dashboard', { state: { user } });
     } catch (error) {
+      console.error('Erreur:', error);
       toast.error('Erreur lors de la sauvegarde');
     }
   };

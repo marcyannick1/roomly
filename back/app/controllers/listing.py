@@ -51,6 +51,11 @@ async def get_landlord_listings(db: AsyncSession, landlord_id: int):
     )
     return result.scalars().all()
 
+async def get_all_listings(db: AsyncSession):
+    """Récupérer toutes les annonces"""
+    result = await db.execute(select(Listing))
+    return result.scalars().all()
+
 async def update_listing(db: AsyncSession, listing_id: str, listing_data: ListingUpdate):
     """Mettre à jour une annonce"""
     db_listing = await get_listing_by_id(db, listing_id)

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateLandlordProfile } from '@/lib/api';
+import { getCurrentUser, updateLandlordProfile } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function LandlordOnboarding() {
@@ -12,13 +12,35 @@ export default function LandlordOnboarding() {
   const user = location.state?.user;
   
   const [profile, setProfile] = useState({
-    user_id: user?.user_id,
+    user_id: user?.id ?? user?.user_id,
     phone: '',
     company_name: ''
   });
 
+  useEffect(() => {
+    if (profile.user_id) return;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await getCurrentUser();
+        const id = data?.user?.id ?? data?.id;
+        if (id) {
+          setProfile((prev) => ({ ...prev, user_id: id }));
+        }
+      } catch (error) {
+        console.error('Erreur chargement utilisateur:', error);
+      }
+    };
+
+    loadUser();
+  }, [profile.user_id]);
+
   const handleSubmit = async () => {
     try {
+      if (!profile.user_id) {
+        toast.error("Utilisateur introuvable. Veuillez vous reconnecter.");
+        return;
+      }
       await updateLandlordProfile(profile);
       toast.success('Profil complété !');
       navigate('/landlord/dashboard', { state: { user } });

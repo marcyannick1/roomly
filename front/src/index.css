@@ -58,6 +58,10 @@
     min-height: 100vh;
   }
 
+  body:not(.has-dashboard-sidebar) .dashboard-sidebar {
+    display: none;
+  }
+
   a {
     font-weight: 500;
     color: hsl(var(--primary));

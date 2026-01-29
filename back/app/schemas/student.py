@@ -1,16 +1,17 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class StudentBase(BaseModel):
-    room_type: str
-    furnished: bool = False
-    smoking: bool = False
-    pets: bool = False
-    noise_level: int
-    max_budget: float
-    guarantor_income: float
-    university: str
-    study_level: str
-    passions: str
+    room_type: Optional[str] = None
+    furnished: Optional[bool] = False
+    smoking: Optional[bool] = False
+    pets: Optional[bool] = False
+    noise_level: Optional[int] = 5
+    max_budget: Optional[float] = 0
+    guarantor_income: Optional[float] = 0
+    university: Optional[str] = None
+    study_level: Optional[str] = None
+    passions: Optional[str] = None
 
 class StudentCreate(StudentBase):
     user_id: int

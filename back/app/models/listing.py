@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, JSON, Text
 from datetime import datetime
-from app.models.user import Base
+from app.db.base import Base
 
 class Listing(Base):
     __tablename__ = "listings"

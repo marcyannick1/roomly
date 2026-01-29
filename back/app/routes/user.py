@@ -6,7 +6,7 @@ from app.schemas.user import UserCreate, UserOut
 from app.db.session import get_db
 from app.core.security import create_access_token
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter()
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):

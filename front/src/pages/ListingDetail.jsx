@@ -9,15 +9,30 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-import { ArrowLeft, MapPin, Home, User, CheckCircle, Share2, Maximize2, X } from 'lucide-react';
+import { ArrowLeft, MapPin, Home, User, CheckCircle, Share2, Maximize2, X, Flame, LogOut, Eye, Settings, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 export default function ListingDetail() {
   const { listingId } = useParams();
+  const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [landlord, setLandlord] = useState(null);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const navItems = [
+    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
+    { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
+    { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
+    { id: 'profile', icon: User, label: 'Profil', path: null },
+    { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+  ];
+
+  // useMemo DOIT être avant tout return conditionnel
+  const amenities = useMemo(() => listing?.amenities || [], [listing?.amenities]);
+  const photos = listing?.photos?.length ? listing.photos : [];
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,6 +59,13 @@ export default function ListingDetail() {
     loadData();
   }, [listingId]);
 
+  useEffect(() => {
+    document.body.classList.add('has-dashboard-sidebar');
+    return () => {
+      document.body.classList.remove('has-dashboard-sidebar');
+    };
+  }, []);
+
   if (!listing && !error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -67,9 +89,6 @@ export default function ListingDetail() {
       </div>
     );
   }
-
-  const photos = listing.photos?.length ? listing.photos : [];
-  const amenities = useMemo(() => listing.amenities || [], [listing.amenities]);
 
   const handleShare = async () => {
     const shareData = {
@@ -100,7 +119,89 @@ export default function ListingDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="dashboard-sidebar w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50">
+        <div className="p-6 border-b border-black/10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-2">
+              <img src="/logo.svg" alt="Roomly" className="w-full h-full" />
+            </div>
+            <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
+          </div>
+
+          <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
+                {landlord?.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[#212220] truncate">{landlord?.name || 'Propriétaire'}</p>
+                <p className="text-xs text-[#212220]/70 truncate">{landlord?.email || ''}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 py-4 px-3">
+          <div className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = false;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                    } else if (item.id === 'profile' && landlord?.id) {
+                      navigate(`/profile/${landlord.id}`);
+                    } else if (item.id === 'settings') {
+                      // Settings en cours de développement
+                    } else if (item.id === 'students') {
+                      navigate('/landlord/dashboard');
+                    }
+                  }}
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${
+                    isActive
+                      ? 'bg-[#212220] text-[#fec629] shadow-lg'
+                      : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
+                  }`}
+                  data-testid={`nav-${item.id}`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'}`} />
+                  <span className="font-medium">{item.label}</span>
+
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavListingDetail"
+                      className="absolute inset-0 bg-[#212220] rounded-xl -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-black/10">
+          <button
+            onClick={() => {
+              document.cookie = 'session_token=; path=/; max-age=0';
+              window.location.href = '/';
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/5 hover:bg-black/10 text-[#212220]/70 hover:text-[#212220] transition-all duration-200"
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Déconnexion</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 ml-72">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <Link to="/landlord/dashboard">
           <Button variant="ghost" className="mb-6 rounded-full">
@@ -254,6 +355,7 @@ export default function ListingDetail() {
               </div>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Email: {landlord?.email || 'Non communiqué'}</p>
+                <p>Téléphone: {landlord?.telephone || 'Non communiqué'}</p>
                 <p>Statut: {landlord?.user_type === 'landlord' ? 'Bailleur vérifié' : 'Bailleur'}</p>
               </div>
               <div className="mt-5 grid gap-2">
@@ -323,6 +425,7 @@ export default function ListingDetail() {
           </div>
         )}
       </div>
+      </main>
     </div>
   );
 }
