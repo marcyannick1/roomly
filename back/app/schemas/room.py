@@ -86,8 +86,4 @@ class RoomOut(RoomBase):
     owner_id: int
 
     class Config:
-<<<<<<< HEAD
         from_attributes = True
-=======
-        from_attributes = True  # pydantic v2
->>>>>>> main

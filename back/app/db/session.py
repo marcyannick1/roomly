@@ -5,11 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-<<<<<<< HEAD
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:root@localhost/roomly")
-=======
 DATABASE_URL = os.getenv("DATABASE_URL")
->>>>>>> main
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
