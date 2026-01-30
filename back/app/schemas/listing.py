@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 
 
@@ -89,6 +89,18 @@ class ListingOut(BaseModel):
     balcony: Optional[bool] = None
     owner_id: Optional[int] = None
     photos: List[ListingPhotoOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class LikeWithDetailsOut(BaseModel):
+    """Schema pour un like avec les détails de l'étudiant et du listing"""
+    id: int
+    student_id: int
+    listing_id: int
+    is_like: Optional[bool] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True

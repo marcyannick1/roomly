@@ -48,4 +48,6 @@ class Listing(Base):
 
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
+    # Relations
     photos = relationship("ListingPhoto", back_populates="listing", cascade="all, delete-orphan")
+    likes = relationship("Like", back_populates="listing", cascade="all, delete-orphan")

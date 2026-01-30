@@ -52,32 +52,36 @@ async def like_listing(user_id: int, listing_id: int, db: AsyncSession = Depends
     student = await student_ctrl.get_student_by_user(db, user_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
-    
-    db_listing = await listing_ctrl.add_like_to_listing(db, listing_id, student.id)
+
+    db_listing = await listing_ctrl.set_listing_reaction(db, listing_id, student.id, is_like=True)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     return db_listing
 
-@router.delete("/{user_id}/unlike/{listing_id}")
-async def unlike_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):
+@router.post("/{user_id}/dislike/{listing_id}")
+async def dislike_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):
     # Récupérer le profil étudiant à partir du user_id
     student = await student_ctrl.get_student_by_user(db, user_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
-    
-    db_listing = await listing_ctrl.remove_like_from_listing(db, listing_id, student.id)
+
+    db_listing = await listing_ctrl.set_listing_reaction(db, listing_id, student.id, is_like=False)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     return db_listing
 
-@router.get("/{user_id}/matches")
-async def get_student_matches(user_id: int, db: AsyncSession = Depends(get_db)):
+@router.delete("/{user_id}/reaction/{listing_id}")
+async def remove_reaction(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):
     # Récupérer le profil étudiant à partir du user_id
     student = await student_ctrl.get_student_by_user(db, user_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
-    
-    return await listing_ctrl.get_student_matches(db, student.id)
+
+    db_listing = await listing_ctrl.remove_listing_reaction(db, listing_id, student.id)
+    if not db_listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return db_listing
+
 
 @router.get("/{user_id}/liked", response_model=list[ListingOut])
 async def get_student_liked_listings(user_id: int, db: AsyncSession = Depends(get_db)):
