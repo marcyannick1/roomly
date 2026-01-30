@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, getStudentFeed, likeListing, getStudentMatches, getStudentLikedListings, unlikeListing, updateStudentProfile, getStudentProfile } from '@/lib/api';
+import { getCurrentUser, getStudentFeed, likeListing, getStudentMatches, getStudentLikedListings, unlikeListing, updateStudentProfile, getStudentProfile, getUserById, deleteProfilePhoto, uploadProfilePhoto, deleteUserAccount } from '@/lib/api';
 import { toast } from 'sonner';
 import { Home, Heart, X, LogOut, User, MessageCircle, Settings, Flame, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -36,6 +36,16 @@ export default function StudentDashboard() {
       if (!userId) {
         console.error('User id introuvable');
         return;
+      }
+
+      // Toujours recharger les données utilisateur pour avoir la photo à jour
+      try {
+        const userResponse = await getUserById(userId);
+        const updatedUser = userResponse.data;
+        setUser(updatedUser);
+        currentUser = updatedUser;
+      } catch (error) {
+        console.error('Erreur lors du rechargement utilisateur:', error);
       }
 
       try {
@@ -134,17 +144,29 @@ export default function StudentDashboard() {
       <aside className="w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50">
         <div className="p-6 border-b border-black/10">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg">
-              <Flame className="w-7 h-7 text-[#fec629]" />
+            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-1">
+              <img 
+                src="/logo.svg" 
+                alt="Roomly Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
           </div>
           
           <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </div>
+              {user?.photo ? (
+                <img 
+                  src={user.photo} 
+                  alt={user.name} 
+                  className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-[#212220]"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-[#212220] truncate">{user?.name || 'Utilisateur'}</p>
                 <p className="text-xs text-[#212220]/70 truncate">{user?.email || ''}</p>
@@ -521,6 +543,20 @@ export default function StudentDashboard() {
 
               {view === 'profile' && studentProfile && (
                 <div className="space-y-6">
+                  {/* Photo de profil */}
+                  <div className="flex justify-center mb-6">
+                    {user?.photo ? (
+                      <img 
+                        src={user.photo} 
+                        alt={user.name} 
+                        className="w-32 h-32 rounded-full object-cover border-4 border-[#fec629] shadow-xl"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 bg-[#212220] rounded-full flex items-center justify-center font-bold text-6xl shadow-xl text-[#fec629]">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                  </div>
                   {!isEditingProfile ? (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -561,12 +597,87 @@ export default function StudentDashboard() {
                         <h3 className="text-sm font-semibold text-gray-600 mb-2">Centres d'intérêt</h3>
                         <p className="text-lg">{studentProfile.passions || 'Non renseigné'}</p>
                       </div>
-                      <Button
-                        onClick={() => setIsEditingProfile(true)}
-                        className="bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
-                      >
-                        Modifier mon profil
-                      </Button>
+                      <div className="space-y-3">
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setIsEditingProfile(true)}
+                            className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
+                          >
+                            Modifier mon profil
+                          </Button>
+                          {user?.photo ? (
+                            <Button
+                              onClick={async () => {
+                                if (window.confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
+                                  try {
+                                    const userId = user?.id ?? user?.user_id;
+                                    await deleteProfilePhoto(userId);
+                                    const userResponse = await getUserById(userId);
+                                    setUser(userResponse.data);
+                                    toast.success('Photo supprimée');
+                                  } catch (error) {
+                                    console.error(error);
+                                    toast.error('Erreur lors de la suppression');
+                                  }
+                                }
+                              }}
+                              variant="outline"
+                              className="border-red-500 text-red-500 hover:bg-red-50 font-semibold"
+                            >
+                              Supprimer la photo
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = 'image/*';
+                                input.onchange = async (e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    try {
+                                      const userId = user?.id ?? user?.user_id;
+                                      await uploadProfilePhoto(userId, file);
+                                      const userResponse = await getUserById(userId);
+                                      setUser(userResponse.data);
+                                      toast.success('Photo ajoutée avec succès');
+                                    } catch (error) {
+                                      console.error(error);
+                                      toast.error("Erreur lors de l'ajout de la photo");
+                                    }
+                                  }
+                                };
+                                input.click();
+                              }}
+                              variant="outline"
+                              className="border-[#fec629] text-[#fec629] hover:bg-[#fec629] hover:text-[#212220] font-semibold"
+                            >
+                              Ajouter une photo
+                            </Button>
+                          )}
+                        </div>
+                        <Button
+                          onClick={async () => {
+                            if (window.confirm('⚠️ ATTENTION : Cette action est irréversible. Voulez-vous vraiment supprimer définitivement votre compte et toutes vos données ?')) {
+                              try {
+                                const userId = user?.id ?? user?.user_id;
+                                await deleteUserAccount(userId);
+                                toast.success('Compte supprimé');
+                                // Déconnexion et redirection
+                                document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                                navigate('/login');
+                              } catch (error) {
+                                console.error(error);
+                                toast.error('Erreur lors de la suppression du compte');
+                              }
+                            }
+                          }}
+                          variant="outline"
+                          className="w-full border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-semibold"
+                        >
+                          Supprimer mon compte
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <form onSubmit={async (e) => {

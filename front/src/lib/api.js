@@ -38,6 +38,8 @@ export const uploadProfilePhoto = (userId, photoFile) => {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
 };
+export const deleteProfilePhoto = (userId) => api.delete(`/users/${userId}/photo`);
+export const deleteUserAccount = (userId) => api.delete(`/users/${userId}`);
 
 // Profiles
 export const getStudentProfile = (userId) => api.get(`/students/profile/${userId}`);

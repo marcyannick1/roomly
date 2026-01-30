@@ -38,17 +38,20 @@ export default function UserProfile() {
       // Load target user
       const userResponse = await getUserById(userId);
       const userData = userResponse.data.user || userResponse.data;
+      console.log('UserProfile - userData loaded:', userData);
+      console.log('UserProfile - is_landlord:', userData.is_landlord);
+      console.log('UserProfile - user_type:', userData.user_type);
       setUser(userData);
 
       // Load profile based on user type
-      if (userData.user_type === 'student') {
+      if (!userData.is_landlord) {
         try {
           const profileResponse = await getStudentProfile(userId);
           setProfile(profileResponse.data);
         } catch (err) {
           console.log('No student profile found');
         }
-      } else if (userData.user_type === 'landlord') {
+      } else {
         try {
           const profileResponse = await getLandlordProfile(userId);
           setProfile(profileResponse.data);
@@ -196,7 +199,7 @@ export default function UserProfile() {
                       </h1>
                       <div className="flex items-center gap-3">
                         <span className="bg-[#fec629] text-[#212220] px-4 py-1.5 rounded-full text-sm font-bold">
-                          {user?.user_type === 'landlord' ? '🏠 Bailleur' : '🎓 Étudiant'}
+                          {user?.is_landlord ? '🏠 Bailleur' : '🎓 Étudiant'}
                         </span>
                         <span className="text-gray-600">Membre depuis {new Date(user?.created_at).toLocaleDateString('fr-FR')}</span>
                       </div>
@@ -233,7 +236,7 @@ export default function UserProfile() {
                       Type de compte
                     </div>
                     <p className="font-semibold text-[#212220]">
-                      {user?.user_type === 'landlord' ? 'Bailleur' : 'Étudiant'}
+                      {user?.is_landlord ? 'Bailleur' : 'Étudiant'}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4">
@@ -247,7 +250,7 @@ export default function UserProfile() {
               </div>
 
               {/* Student Profile */}
-              {user?.user_type === 'student' && profile && (
+              {!user?.is_landlord && profile && (
                 <>
                   <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-100">
                     <h2 className="text-2xl font-bold text-[#212220] mb-6" style={{ fontFamily: 'Outfit' }}>

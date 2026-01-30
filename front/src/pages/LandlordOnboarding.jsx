@@ -52,7 +52,11 @@ export default function LandlordOnboarding() {
       
       await updateLandlordProfile(profile);
       toast.success('Profil complété !');
-      navigate('/landlord/dashboard', { state: { user } });
+      
+      // Recharger l'utilisateur pour avoir les dernières données
+      const { data } = await getCurrentUser();
+      const updatedUser = data?.user || data;
+      navigate('/landlord/dashboard', { state: { user: updatedUser } });
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde');
     }

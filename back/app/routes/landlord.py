@@ -26,6 +26,13 @@ async def update_or_create_landlord_profile(landlord: LandlordCreate, db: AsyncS
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Mettre à jour is_landlord de l'utilisateur
+    if not user.is_landlord:
+        user.is_landlord = True
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
     # Chercher si un profil landlord existe déjà
     existing_landlord = await landlord_ctrl.get_landlord_by_user(db, landlord.user_id)
     if existing_landlord:

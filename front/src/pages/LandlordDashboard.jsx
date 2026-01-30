@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing } from '@/lib/api';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount } from '@/lib/api';
 import { toast } from 'sonner';
 import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -20,11 +22,14 @@ export default function LandlordDashboard() {
   const location = useLocation();
   const [user, setUser] = useState(location.state?.user || null);
   const [listings, setListings] = useState([]);
-  const [view, setView] = useState('listings'); // 'listings' or 'students'
+  const [view, setView] = useState('listings'); // 'listings', 'students' or 'profile'
   const [selectedListing, setSelectedListing] = useState(null);
   const [interestedStudents, setInterestedStudents] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState(null);
+  const [landlordProfile, setLandlordProfile] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
 
   useEffect(() => {
     loadData();
@@ -43,7 +48,19 @@ export default function LandlordDashboard() {
       if (!currentUser) {
         const response = await getCurrentUser();
         currentUser = response.data.user || response.data;
-        setUser(currentUser);
+      }
+      
+      // Toujours recharger les données utilisateur pour avoir la photo à jour
+      const userId = currentUser?.id || currentUser?.user_id;
+      if (userId) {
+        try {
+          const userResponse = await getUserById(userId);
+          const updatedUser = userResponse.data;
+          setUser(updatedUser);
+          currentUser = updatedUser;
+        } catch (error) {
+          console.error('Erreur lors du rechargement utilisateur:', error);
+        }
       }
       
       console.log('Current user in LandlordDashboard:', currentUser);
@@ -52,6 +69,21 @@ export default function LandlordDashboard() {
       if (landlordId) {
         const listingsResponse = await getLandlordListings(landlordId);
         setListings(listingsResponse.data);
+        
+        // Charger le profil bailleur
+        try {
+          const profileResponse = await getLandlordProfile(landlordId);
+          const profile = profileResponse.data;
+          setLandlordProfile(profile);
+          // Initialiser le formulaire avec les données utilisateur et profil
+          setProfileForm({
+            ...profile,
+            name: currentUser.name,
+            email: currentUser.email
+          });
+        } catch (error) {
+          console.log('No landlord profile found');
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -125,9 +157,17 @@ export default function LandlordDashboard() {
           {/* User Profile Card */}
           <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </div>
+              {user?.photo ? (
+                <img 
+                  src={user.photo} 
+                  alt={user.name} 
+                  className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-[#212220]"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-[#212220] truncate">{user?.name || 'Utilisateur'}</p>
                 <p className="text-xs text-[#212220]/70 truncate">{user?.email || ''}</p>
@@ -151,8 +191,8 @@ export default function LandlordDashboard() {
                       navigate(item.path);
                     } else if (item.id === 'students') {
                       setView('students');
-                    } else if (item.id === 'profile' && user?.id) {
-                      navigate(`/profile/${user.id}`);
+                    } else if (item.id === 'profile') {
+                      setView('profile');
                     } else if (item.id === 'settings') {
                       toast.error('Paramètres en cours de développement');
                     }
@@ -408,6 +448,231 @@ export default function LandlordDashboard() {
               </div>
             )}
           </>
+        )}
+
+        {view === 'profile' && landlordProfile && (
+          <div className="space-y-6">
+            {/* Photo de profil */}
+            <div className="flex justify-center mb-6">
+              {user?.photo ? (
+                <img 
+                  src={user.photo} 
+                  alt={user.name} 
+                  className="w-32 h-32 rounded-full object-cover border-4 border-[#fec629] shadow-xl"
+                />
+              ) : (
+                <div className="w-32 h-32 bg-[#212220] rounded-full flex items-center justify-center font-bold text-6xl shadow-xl text-[#fec629]">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
+            </div>
+            {!isEditingProfile ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Nom</h3>
+                    <p className="text-lg">{user?.name || 'Non renseigné'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Email</h3>
+                    <p className="text-lg">{user?.email || 'Non renseigné'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Téléphone</h3>
+                    <p className="text-lg">{landlordProfile.phone || 'Non renseigné'}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Entreprise</h3>
+                    <p className="text-lg">{landlordProfile.company_name || 'Non renseigné'}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        // Initialiser le formulaire avec les données actuelles
+                        setProfileForm({
+                          ...landlordProfile,
+                          name: user?.name || '',
+                          email: user?.email || ''
+                        });
+                        setIsEditingProfile(true);
+                      }}
+                      className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
+                    >
+                      Modifier mon profil
+                    </Button>
+                    {user?.photo ? (
+                      <Button
+                        onClick={async () => {
+                          if (window.confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
+                            try {
+                              const userId = user?.id ?? user?.user_id;
+                              await deleteProfilePhoto(userId);
+                              const userResponse = await getUserById(userId);
+                              setUser(userResponse.data);
+                              toast.success('Photo supprimée');
+                            } catch (error) {
+                              console.error(error);
+                              toast.error('Erreur lors de la suppression');
+                            }
+                          }
+                        }}
+                        variant="outline"
+                        className="border-red-500 text-red-500 hover:bg-red-50 font-semibold"
+                      >
+                        Supprimer la photo
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              try {
+                                const userId = user?.id ?? user?.user_id;
+                                await uploadProfilePhoto(userId, file);
+                                const userResponse = await getUserById(userId);
+                                setUser(userResponse.data);
+                                toast.success('Photo ajoutée avec succès');
+                              } catch (error) {
+                                console.error(error);
+                                toast.error("Erreur lors de l'ajout de la photo");
+                              }
+                            }
+                          };
+                          input.click();
+                        }}
+                        variant="outline"
+                        className="border-[#fec629] text-[#fec629] hover:bg-[#fec629] hover:text-[#212220] font-semibold"
+                      >
+                        Ajouter une photo
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      if (window.confirm('⚠️ ATTENTION : Cette action est irréversible. Voulez-vous vraiment supprimer définitivement votre compte et toutes vos données ?')) {
+                        try {
+                          const userId = user?.id ?? user?.user_id;
+                          await deleteUserAccount(userId);
+                          toast.success('Compte supprimé');
+                          document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                          navigate('/login');
+                        } catch (error) {
+                          console.error(error);
+                          toast.error('Erreur lors de la suppression du compte');
+                        }
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-semibold"
+                  >
+                    Supprimer mon compte
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  // Mettre à jour le profil landlord
+                  await updateLandlordProfile(profileForm);
+                  setLandlordProfile(profileForm);
+                  
+                  // Mettre à jour les infos utilisateur (nom, email)
+                  if (profileForm.name !== user.name || profileForm.email !== user.email) {
+                    const userId = user?.id ?? user?.user_id;
+                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/users/${userId}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${document.cookie.split('session_token=')[1]?.split(';')[0]}`
+                      },
+                      body: JSON.stringify({
+                        name: profileForm.name,
+                        email: profileForm.email
+                      })
+                    });
+                    if (response.ok) {
+                      const userResponse = await getUserById(userId);
+                      setUser(userResponse.data);
+                    }
+                  }
+                  
+                  setIsEditingProfile(false);
+                  toast.success('Profil mis à jour');
+                } catch (error) {
+                  toast.error('Erreur lors de la mise à jour');
+                }
+              }} className="space-y-6">
+                <div>
+                  <Label htmlFor="name">Nom complet</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={profileForm.name || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="mt-2 h-12 rounded-xl"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profileForm.email || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    className="mt-2 h-12 rounded-xl"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Téléphone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={profileForm.phone || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="mt-2 h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="company_name">Nom de l'entreprise</Label>
+                  <Input
+                    id="company_name"
+                    value={profileForm.company_name || ''}
+                    onChange={(e) => setProfileForm({ ...profileForm, company_name: e.target.value })}
+                    className="mt-2 h-12 rounded-xl"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <Button type="submit" className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold">
+                    Enregistrer
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingProfile(false);
+                      // Réinitialiser le formulaire avec les données actuelles
+                      setProfileForm({
+                        ...landlordProfile,
+                        name: user?.name || '',
+                        email: user?.email || ''
+                      });
+                    }}
+                    variant="outline"
+                  >
+                    Annuler
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
       </div>
 
