@@ -31,10 +31,34 @@ export default function ListingDetail() {
   ];
 
   // useMemo DOIT être avant tout return conditionnel
-  const amenities = useMemo(() => listing?.amenities || [], [listing?.amenities]);
-  const photos = listing?.photos?.length ? listing.photos : [];
+  const amenities = useMemo(() => {
+    if (!listing) return [];
+    const items = [];
+    if (listing.wifi) items.push('📶 WiFi');
+    if (listing.workspace) items.push('💻 Espace de travail');
+    if (listing.parking) items.push('🅿️ Parking');
+    if (listing.pets) items.push('🐾 Animaux acceptés');
+    if (listing.tv) items.push('📺 Télévision');
+    if (listing.elevator) items.push('🛗 Ascenseur');
+    if (listing.washing_machine) items.push('🧺 Lave-linge');
+    if (listing.dryer) items.push('🌡️ Sèche-linge');
+    if (listing.ac) items.push('❄️ Climatisation');
+    if (listing.kitchen) items.push('🍳 Cuisine équipée');
+    if (listing.garden) items.push('🌿 Jardin');
+    if (listing.balcony) items.push('🏠 Balcon/Terrasse');
+    return items;
+  }, [listing]);
+  
+  const photos = listing?.photos?.map(p => p.url) || [];
 
   useEffect(() => {
+    // ⛔ STOP si pas d'ID
+    if (!listingId) {
+      console.warn("Listing ID undefined, skipping API call");
+      setError("ID d'annonce manquant");
+      return;
+    }
+
     const loadData = async () => {
       try {
         setError(null);
@@ -262,13 +286,13 @@ export default function ListingDetail() {
                   </h1>
                   <div className="flex items-center text-muted-foreground mt-2">
                     <MapPin className="h-4 w-4 mr-2" />
-                    {listing.address?.city || 'Adresse non renseignée'}
+                    {listing.address || listing.city || 'Adresse non renseignée'}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">{listing.rent}€/mois</p>
+                  <p className="text-2xl font-bold text-primary">{listing.price}€/mois</p>
                   <p className="text-sm text-muted-foreground">
-                    {listing.surface}m² • {listing.rooms} pièce(s)
+                    {listing.surface}m² • {listing.room_type}
                   </p>
                 </div>
               </div>
@@ -289,7 +313,7 @@ export default function ListingDetail() {
               <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="rounded-2xl bg-muted/40 p-4 text-center">
                   <p className="text-sm text-muted-foreground">Type</p>
-                  <p className="font-semibold text-foreground capitalize">{listing.type}</p>
+                  <p className="font-semibold text-foreground capitalize">{listing.room_type}</p>
                 </div>
                 <div className="rounded-2xl bg-muted/40 p-4 text-center">
                   <p className="text-sm text-muted-foreground">Meublé</p>
@@ -297,7 +321,7 @@ export default function ListingDetail() {
                 </div>
                 <div className="rounded-2xl bg-muted/40 p-4 text-center">
                   <p className="text-sm text-muted-foreground">Charges</p>
-                  <p className="font-semibold text-foreground">{listing.charges}€</p>
+                  <p className="font-semibold text-foreground">{listing.charges_included ? 'Incluses' : 'Non incluses'}</p>
                 </div>
                 <div className="rounded-2xl bg-muted/40 p-4 text-center">
                   <p className="text-sm text-muted-foreground">Caution</p>

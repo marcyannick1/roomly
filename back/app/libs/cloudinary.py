@@ -24,10 +24,15 @@ async def upload_to_cloudinary(image: UploadFile) -> str:
 
 
     try:
+        # Lire le contenu du fichier
+        contents = await image.read()
+        await image.seek(0)  # Reset pour réutilisation si besoin
+        
         result = await asyncio.to_thread(
             upload,
-            image.file,
-            folder="listings"
+            contents,
+            folder="listings",
+            resource_type="auto"
         )
         return result["secure_url"]
     except Exception as e:

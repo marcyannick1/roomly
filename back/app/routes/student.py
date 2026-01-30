@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.student import StudentCreate, StudentOut
-from app.schemas.room import ListingOut
+from app.schemas.listing import ListingOut
 from app.controllers import student as student_ctrl
 from app.controllers import user as crud_user
 from app.controllers import listing as listing_ctrl
@@ -36,26 +36,54 @@ async def update_or_create_student_profile(student: StudentCreate, db: AsyncSess
         # Créer nouveau profil
         return await student_ctrl.create_student(db, student)
 
-@router.get("/{student_id}/feed", response_model=list[ListingOut])
-async def get_student_feed(student_id: int, db: AsyncSession = Depends(get_db)):
-    # Pour l'instant, retourner toutes les annonces
+@router.get("/{user_id}/feed", response_model=list[ListingOut])
+async def get_student_feed(user_id: int, db: AsyncSession = Depends(get_db)):
+    # Récupérer le profil étudiant à partir du user_id
+    student = await student_ctrl.get_student_by_user(db, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    # Retourner toutes les annonces
     return await listing_ctrl.get_all_listings(db)
 
-@router.post("/{student_id}/like/{listing_id}")
-async def like_listing(student_id: int, listing_id: str, db: AsyncSession = Depends(get_db)):
-    db_listing = await listing_ctrl.add_like_to_listing(db, listing_id, student_id)
+@router.post("/{user_id}/like/{listing_id}")
+async def like_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):
+    # Récupérer le profil étudiant à partir du user_id
+    student = await student_ctrl.get_student_by_user(db, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    db_listing = await listing_ctrl.add_like_to_listing(db, listing_id, student.id)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     return db_listing
 
-@router.delete("/{student_id}/unlike/{listing_id}")
-async def unlike_listing(student_id: int, listing_id: str, db: AsyncSession = Depends(get_db)):
-    db_listing = await listing_ctrl.remove_like_from_listing(db, listing_id, student_id)
+@router.delete("/{user_id}/unlike/{listing_id}")
+async def unlike_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):
+    # Récupérer le profil étudiant à partir du user_id
+    student = await student_ctrl.get_student_by_user(db, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    db_listing = await listing_ctrl.remove_like_from_listing(db, listing_id, student.id)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
     return db_listing
 
-@router.get("/{student_id}/matches")
-async def get_student_matches(student_id: int):
-    # Placeholder: à remplacer par une vraie logique de matching
-    return []
+@router.get("/{user_id}/matches")
+async def get_student_matches(user_id: int, db: AsyncSession = Depends(get_db)):
+    # Récupérer le profil étudiant à partir du user_id
+    student = await student_ctrl.get_student_by_user(db, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    return await listing_ctrl.get_student_matches(db, student.id)
+
+@router.get("/{user_id}/liked", response_model=list[ListingOut])
+async def get_student_liked_listings(user_id: int, db: AsyncSession = Depends(get_db)):
+    # Récupérer le profil étudiant à partir du user_id
+    student = await student_ctrl.get_student_by_user(db, user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    
+    return await listing_ctrl.get_student_liked_listings(db, student.id)

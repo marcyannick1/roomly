@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch } from '@/lib/api';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye, Flame, Settings } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LandlordDashboard() {
@@ -14,6 +23,8 @@ export default function LandlordDashboard() {
   const [view, setView] = useState('listings'); // 'listings' or 'students'
   const [selectedListing, setSelectedListing] = useState(null);
   const [interestedStudents, setInterestedStudents] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [listingToDelete, setListingToDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -50,7 +61,7 @@ export default function LandlordDashboard() {
   const viewInterestedStudents = async (listing) => {
     try {
       setSelectedListing(listing);
-      const response = await getInterestedStudents(listing.listing_id);
+      const response = await getInterestedStudents(listing.id);  // listing.id au lieu de listing_id
       setInterestedStudents(response.data);
       setView('students');
     } catch (error) {
@@ -58,9 +69,26 @@ export default function LandlordDashboard() {
     }
   };
 
+  const handleDeleteClick = (listing) => {
+    setListingToDelete(listing);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteListing(listingToDelete.id);
+      toast.success('Annonce supprimée');
+      setDeleteDialogOpen(false);
+      setListingToDelete(null);
+      loadData();
+    } catch (error) {
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+
   const handleMatch = async (student) => {
     try {
-      await createMatch(user.user_id, student.user.user_id, selectedListing.listing_id);
+      await createMatch(user.id, student.id, selectedListing.id);
       toast.success('Match créé !');
       loadData();
     } catch (error) {
@@ -205,14 +233,14 @@ export default function LandlordDashboard() {
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((listing) => (
                   <div
-                    key={listing.listing_id}
+                    key={listing.id}
                     className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all"
-                    data-testid={`listing-${listing.listing_id}`}
+                    data-testid={`listing-${listing.id}`}
                   >
                     <div className="h-64 bg-muted relative">
-                      {listing.photos?.[0] ? (
+                      {listing.photos && listing.photos.length > 0 && listing.photos[0]?.url ? (
                         <img
-                          src={listing.photos[0]}
+                          src={listing.photos[0].url}
                           alt={listing.title}
                           className="w-full h-full object-cover"
                         />
@@ -235,37 +263,58 @@ export default function LandlordDashboard() {
                           {listing.title}
                         </h3>
                         <div className="flex items-center justify-between text-sm opacity-90">
-                          <span>{listing.surface}m² • {listing.rooms} pièce(s)</span>
-                          <span className="text-lg font-bold">{listing.rent}€</span>
+                          <span>{listing.surface}m² • {listing.room_type}</span>
+                          <span className="text-lg font-bold">{listing.price}€</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="p-4">
                       <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                        <span className="capitalize">{listing.type}</span>
+                        <span className="capitalize">{listing.room_type}</span>
                         <span>{listing.furnished ? 'Meublé' : 'Non meublé'}</span>
+                      </div>
+                      
+                      <div className="flex gap-2 mb-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => viewInterestedStudents(listing)}
+                          data-testid={`view-students-${listing.id}`}
+                          className="flex-1 rounded-full"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Intéressés (0)
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => navigate(`/listing/${listing.id}`)}
+                          data-testid={`listing-details-${listing.id}`}
+                          className="flex-1 rounded-full"
+                        >
+                          Détails
+                        </Button>
                       </div>
                       
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => viewInterestedStudents(listing)}
-                          data-testid={`view-students-${listing.listing_id}`}
+                          onClick={() => navigate(`/landlord/listing/edit/${listing.id}`)}
                           className="flex-1 rounded-full"
                         >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Voir les profils ({listing.liked_by?.length || 0})
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Modifier
                         </Button>
                         <Button
-                          variant="default"
+                          variant="destructive"
                           size="sm"
-                          onClick={() => navigate(`/listing/${listing.listing_id}`)}
-                          data-testid={`listing-details-${listing.listing_id}`}
+                          onClick={() => handleDeleteClick(listing)}
                           className="flex-1 rounded-full"
                         >
-                          Détails
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Supprimer
                         </Button>
                       </div>
                     </div>
@@ -361,6 +410,40 @@ export default function LandlordDashboard() {
           </>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-3xl bg-white shadow-2xl border-0 max-w-md">
+          <div className="flex flex-col gap-6 py-6">
+            <div className="flex flex-col gap-3">
+              <AlertDialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600" />
+                  </div>
+                  <AlertDialogTitle className="text-2xl font-bold text-[#212220]">Supprimer l'annonce ?</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-base text-[#212220]/70 leading-relaxed mt-4">
+                  Êtes-vous certain de vouloir supprimer l'annonce <span className="font-bold text-[#212220]">"{listingToDelete?.title}"</span> ? 
+                  <span className="block mt-2 text-red-600 font-medium">Cette action est irréversible et supprimera aussi toutes les photos associées.</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+              <AlertDialogCancel className="rounded-full px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#212220] font-medium transition-colors">
+                Annuler
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="rounded-full px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors shadow-md"
+              >
+                <Trash2 className="w-4 h-4 mr-2 inline" />
+                Supprimer
+              </AlertDialogAction>
+            </div>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
       </main>
     </div>
   );

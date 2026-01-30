@@ -14,6 +14,7 @@ import LandlordOnboarding from "@/pages/LandlordOnboarding";
 import StudentDashboard from "@/pages/StudentDashboard";
 import LandlordDashboard from "@/pages/LandlordDashboard";
 import ListingForm from "@/pages/ListingForm";
+import LandlordListingForm from "@/pages/LandlordListingForm";
 import ListingDetail from "@/pages/ListingDetail";
 import Messages from "@/pages/Messages";
 import UserProfile from "@/pages/UserProfile";
@@ -48,7 +49,7 @@ function AppRouter() {
         <ProtectedRoute><LandlordDashboard /></ProtectedRoute>
       } />
       <Route path="/landlord/listing/new" element={
-        <ProtectedRoute><ListingForm /></ProtectedRoute>
+        <ProtectedRoute><LandlordListingForm /></ProtectedRoute>
       } />
       <Route path="/landlord/listing/edit/:listingId" element={
         <ProtectedRoute><ListingForm /></ProtectedRoute>

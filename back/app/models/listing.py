@@ -38,6 +38,13 @@ class Listing(Base):
     kitchen = Column(Boolean, default=False)
     parking = Column(Boolean, default=False)
     elevator = Column(Boolean, default=False)
+    workspace = Column(Boolean, default=False)
+    pets = Column(Boolean, default=False)
+    tv = Column(Boolean, default=False)
+    dryer = Column(Boolean, default=False)
+    ac = Column(Boolean, default=False)
+    garden = Column(Boolean, default=False)
+    balcony = Column(Boolean, default=False)
 
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 

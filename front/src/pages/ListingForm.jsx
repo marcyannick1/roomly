@@ -34,10 +34,23 @@ export default function ListingForm() {
     deposit: 0,
     available_from: null,
     photos: [],
+    photoFiles: [],
     amenities: [],
     description: '',
     tenant_criteria: {},
-    status: 'published'
+    status: 'published',
+    wifi: false,
+    workspace: false,
+    parking: false,
+    pets: false,
+    tv: false,
+    elevator: false,
+    washing_machine: false,
+    dryer: false,
+    ac: false,
+    kitchen: false,
+    garden: false,
+    balcony: false
   });
 
   useEffect(() => {
@@ -76,36 +89,25 @@ export default function ListingForm() {
     setLoading(true);
 
     try {
-      // Nettoyer les données avant envoi
-      const cleanedListing = {
-        listing_id: listing.listing_id,
-        landlord_id: listing.landlord_id,
-        title: listing.title,
-        description: listing.description,
+      // Préparer les données pour l'API
+      const submissionData = {
+        ...listing,
+        rent: listing.rent,
         type: listing.type,
+        furnished: listing.furnished === true || listing.furnished === 'true',
         surface: parseInt(listing.surface) || 0,
         rooms: parseInt(listing.rooms) || 1,
-        furnished: listing.furnished === true || listing.furnished === 'true',
-        rent: parseFloat(listing.rent) || 0,
         charges: parseFloat(listing.charges) || 0,
-        deposit: parseFloat(listing.deposit) || 0,
-        available_from: listing.available_from || null,
-        address: {
-          street: listing.address.street || '',
-          city: listing.address.city || '',
-          postal_code: listing.address.postal_code || ''
-        },
-        amenities: listing.amenities || [],
-        photos: listing.photos || [],
-        tenant_criteria: listing.tenant_criteria || {},
-        status: listing.status || 'published'
+        deposit: parseFloat(listing.deposit) || 0
       };
 
       if (listingId) {
-        await updateListing(listingId, cleanedListing);
+        // Mode édition : passer les photoFiles
+        await updateListing(listingId, submissionData);
         toast.success('Annonce mise à jour !');
       } else {
-        await createListing(cleanedListing);
+        // Mode création
+        await createListing(submissionData);
         toast.success('Annonce créée !');
       }
       navigate('/landlord/dashboard');
@@ -144,7 +146,8 @@ export default function ListingForm() {
 
       setListing((prev) => ({
         ...prev,
-        photos: [...(prev.photos || []), ...base64Images]
+        photos: [...(prev.photos || []), ...base64Images],
+        photoFiles: [...(prev.photoFiles || []), ...files]
       }));
     } catch (error) {
       toast.error('Erreur lors du chargement des images');
@@ -154,7 +157,8 @@ export default function ListingForm() {
   const removePhoto = (index) => {
     setListing((prev) => ({
       ...prev,
-      photos: prev.photos.filter((_, i) => i !== index)
+      photos: prev.photos.filter((_, i) => i !== index),
+      photoFiles: prev.photoFiles.filter((_, i) => i !== index)
     }));
   };
 

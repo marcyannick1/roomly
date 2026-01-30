@@ -4,6 +4,7 @@ from app.db.session import get_db
 from app.schemas.landlord import LandlordOut, LandlordCreate
 from app.controllers import landlord as landlord_ctrl
 from app.controllers import user as crud_user
+from app.controllers import listing as listing_ctrl
 
 router = APIRouter(tags=["Landlords"])
 
@@ -33,3 +34,22 @@ async def update_or_create_landlord_profile(landlord: LandlordCreate, db: AsyncS
     else:
         # Créer nouveau profil
         return await landlord_ctrl.create_landlord(db, landlord)
+
+@router.post("/{landlord_id}/match/{student_id}/{listing_id}")
+async def create_match(
+    landlord_id: int,
+    student_id: int,
+    listing_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    match = await listing_ctrl.create_match(db, landlord_id, student_id, listing_id)
+    if not match:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    return match
+
+@router.get("/{landlord_id}/matches")
+async def get_landlord_matches(
+    landlord_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    return await listing_ctrl.get_landlord_matches(db, landlord_id)
