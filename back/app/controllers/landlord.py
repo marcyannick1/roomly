@@ -14,6 +14,11 @@ async def get_landlord_by_user(db: AsyncSession, user_id: int) -> Landlord | Non
     result = await db.execute(select(Landlord).where(Landlord.user_id == user_id))
     return result.scalar_one_or_none()
 
+async def get_landlord(db: AsyncSession, landlord_id: int) -> Landlord | None:
+    """Récupérer un landlord par son ID"""
+    result = await db.execute(select(Landlord).where(Landlord.id == landlord_id))
+    return result.scalar_one_or_none()
+
 async def update_landlord(db: AsyncSession, landlord_id: int, landlord_data: LandlordCreate) -> Landlord:
     """Mettre à jour un profil landlord existant"""
     result = await db.execute(select(Landlord).where(Landlord.id == landlord_id))

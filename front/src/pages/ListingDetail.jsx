@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getListing, getUserById } from '@/lib/api';
+import { getListing, getUserById, getCurrentUser } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
@@ -9,7 +9,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel';
-import { ArrowLeft, MapPin, Home, User, CheckCircle, Share2, Maximize2, X, Flame, LogOut, Eye, Settings, Plus } from 'lucide-react';
+import { ArrowLeft, MapPin, Home, User, CheckCircle, Share2, Maximize2, X, Flame, LogOut, Eye, Settings, Plus, Heart, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,17 +18,34 @@ export default function ListingDetail() {
   const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [landlord, setLandlord] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const navItems = [
-    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-    { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
-    { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
-    { id: 'profile', icon: User, label: 'Profil', path: null },
-    { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
-  ];
+  // Navigation adaptée selon le type d'utilisateur
+  const navItems = useMemo(() => {
+    if (!currentUser) return [];
+    
+    if (currentUser.is_landlord) {
+      return [
+        { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
+        { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
+        { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
+        { id: 'profile', icon: User, label: 'Profil', path: null },
+        { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+      ];
+    } else {
+      // Navigation étudiant
+      return [
+        { id: 'feed', icon: Flame, label: 'Découvrir', path: '/student/dashboard' },
+        { id: 'liked', icon: Heart, label: 'Likés', path: '/student/dashboard' },
+        { id: 'matches', icon: MessageCircle, label: 'Matchs', path: '/student/dashboard' },
+        { id: 'profile', icon: User, label: 'Profil', path: null },
+        { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+      ];
+    }
+  }, [currentUser]);
 
   // useMemo DOIT être avant tout return conditionnel
   const amenities = useMemo(() => {
@@ -62,13 +79,19 @@ export default function ListingDetail() {
     const loadData = async () => {
       try {
         setError(null);
+        
+        // Charger l'utilisateur courant
+        const userResponse = await getCurrentUser();
+        const userData = userResponse.data?.user || userResponse.data;
+        setCurrentUser(userData);
+        
         const listingResponse = await getListing(listingId);
         setListing(listingResponse.data);
 
-        if (listingResponse.data?.landlord_id) {
+        if (listingResponse.data?.owner_id) {
           try {
-            const userResponse = await getUserById(listingResponse.data.landlord_id);
-            setLandlord(userResponse.data.user || userResponse.data);
+            const landlordResponse = await getUserById(listingResponse.data.owner_id);
+            setLandlord(landlordResponse.data);
           } catch (userError) {
             console.error('Error loading landlord:', userError);
             setLandlord(null);
@@ -157,11 +180,11 @@ export default function ListingDetail() {
           <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                {landlord?.name?.charAt(0).toUpperCase() || 'U'}
+                {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[#212220] truncate">{landlord?.name || 'Propriétaire'}</p>
-                <p className="text-xs text-[#212220]/70 truncate">{landlord?.email || ''}</p>
+                <p className="font-semibold text-[#212220] truncate">{currentUser?.name || 'Utilisateur'}</p>
+                <p className="text-xs text-[#212220]/70 truncate">{currentUser?.email || ''}</p>
               </div>
             </div>
           </div>
@@ -179,8 +202,8 @@ export default function ListingDetail() {
                   onClick={() => {
                     if (item.path) {
                       navigate(item.path);
-                    } else if (item.id === 'profile' && landlord?.id) {
-                      navigate(`/profile/${landlord.id}`);
+                    } else if (item.id === 'profile' && currentUser?.id) {
+                      navigate(`/profile/${currentUser.id}`);
                     } else if (item.id === 'settings') {
                       // Settings en cours de développement
                     } else if (item.id === 'students') {
@@ -227,12 +250,14 @@ export default function ListingDetail() {
 
       <main className="flex-1 ml-72">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <Link to="/landlord/dashboard">
-          <Button variant="ghost" className="mb-6 rounded-full">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Button>
-        </Link>
+        <Button 
+          variant="ghost" 
+          className="mb-6 rounded-full"
+          onClick={() => navigate(currentUser?.is_landlord ? '/landlord/dashboard' : '/student/dashboard')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour
+        </Button>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">

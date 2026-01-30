@@ -1,4 +1,4 @@
-from passlib.hash import bcrypt
+import bcrypt
 from datetime import datetime, timedelta
 import jwt
 from fastapi.security import HTTPBearer
@@ -10,10 +10,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60*24
 security = HTTPBearer()
 
 def hash_password(password: str) -> str:
-    return bcrypt.hash(password[:72])
+    # Encoder en UTF-8 et tronquer à 72 bytes
+    password_bytes = password.encode('utf-8')[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.verify(password[:72], hashed)
+    # Encoder en UTF-8 et tronquer à 72 bytes
+    password_bytes = password.encode('utf-8')[:72]
+    hashed_bytes = hashed.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 def create_access_token(data: dict):
     to_encode = data.copy()

@@ -1,6 +1,9 @@
 from pydantic import BaseModel
-from datetime import date
-from typing import Optional, List
+from datetime import date, datetime
+from typing import Optional, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.schemas.student import StudentOut
 
 
 class ListingPhotoOut(BaseModel):
@@ -90,5 +93,36 @@ class ListingOut(BaseModel):
     owner_id: Optional[int] = None
     photos: List[ListingPhotoOut] = []
 
+    class Config:
+        from_attributes = True
+
+
+class LikeWithDetailsOut(BaseModel):
+    """Schema pour un like avec les détails de l'étudiant et du listing"""
+    id: int
+    student_id: int
+    listing_id: int
+    is_like: Optional[bool] = None
+    created_at: datetime
+    
+    # Relations
+    student: Optional["StudentWithUserOut"] = None
+    listing: Optional[ListingOut] = None
+    match: Optional[dict] = None  # Informations sur le match éventuel
+
+    class Config:
+        from_attributes = True
+
+
+class StudentWithUserOut(BaseModel):
+    """Schema simplifié pour un étudiant avec ses infos utilisateur"""
+    id: int
+    user_id: int
+    university: Optional[str] = None
+    study_level: Optional[str] = None
+    # Infos de l'utilisateur
+    name: Optional[str] = None
+    photo: Optional[str] = None
+    
     class Config:
         from_attributes = True

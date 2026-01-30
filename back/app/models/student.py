@@ -22,5 +22,6 @@ class Student(Base):
     study_level = Column(String)
     passions = Column(String)  # libre, peut stocker CSV ou JSON
 
-    # Relation
+    # Relations
     user = relationship("User", back_populates="student")
+    likes = relationship("Like", back_populates="student", cascade="all, delete-orphan")

@@ -1,20 +1,12 @@
 from sqlalchemy.future import select
 from app.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
+from app.core.security import hash_password
 
 from app.schemas.user import UserCreate
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
-    password = user_data.password
-
-    # sécurité : bcrypt max 72 bytes
-    if len(password.encode("utf-8")) > 72:
-        raise ValueError("Password too long (max 72 bytes)")
-
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(user_data.password)
 
     db_user = User(
         email=user_data.email,

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base import Base
 
@@ -7,10 +8,12 @@ class Match(Base):
     __tablename__ = "matches"
 
     id = Column(Integer, primary_key=True, index=True)
-    landlord_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    landlord_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # C'est un user_id
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     listing_id = Column(Integer, ForeignKey("listings.id"), nullable=False)
     status = Column(String, default="pending")  # pending, accepted, rejected
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (UniqueConstraint('student_id', 'listing_id', name='uq_match_student_listing'),)
+    
+    # Relations
+    listing = relationship("Listing", foreign_keys=[listing_id])
+    student = relationship("Student", foreign_keys=[student_id])

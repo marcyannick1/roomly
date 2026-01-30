@@ -803,7 +803,94 @@ export default function StudentDashboard() {
                 </div>
               )}
 
-              {(view === 'matches' || view === 'settings') && (
+              {(view === 'matches' || view === 'settings') && view === 'matches' && (
+                <div className="space-y-4">
+                  {matches.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-600">Aucun match pour le moment</p>
+                      <p className="text-sm text-gray-500 mt-2">Les bailleurs que vous avez likés pourront vous matcher !</p>
+                    </div>
+                  ) : (
+                    matches.map((match) => (
+                      <div
+                        key={match.id}
+                        className="bg-white rounded-2xl p-6 shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex gap-6">
+                          {/* Photo de l'annonce */}
+                          <div className="w-32 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                            {match.listing?.photos && match.listing.photos[0]?.url ? (
+                              <img
+                                src={match.listing.photos[0].url}
+                                alt={match.listing.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                <Home className="w-12 h-12 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h3 className="text-xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>
+                                  {match.listing?.title || 'Annonce'}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                  {match.listing?.city} • {match.listing?.price}€/mois
+                                </p>
+                              </div>
+                              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                Match ! 💚
+                              </span>
+                            </div>
+
+                            <div className="mb-4">
+                              <p className="text-sm text-gray-700 line-clamp-2">
+                                {match.listing?.description}
+                              </p>
+                            </div>
+
+                            {/* Info bailleur */}
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-[#212220] flex items-center justify-center flex-shrink-0">
+                                {match.landlord?.photo ? (
+                                  <img src={match.landlord.photo} alt={match.landlord.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-[#fec629] font-bold">
+                                    {match.landlord?.name?.charAt(0).toUpperCase() || 'B'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-gray-900">
+                                  Bailleur: {match.landlord?.name || 'Non renseigné'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Match créé le {new Date(match.created_at).toLocaleDateString('fr-FR')}
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/listing/${match.listing_id}`)}
+                                className="rounded-full"
+                              >
+                                Voir l'annonce
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {view === 'settings' && (
                 <p className="text-gray-600">Section en développement... 🚧</p>
               )}
             </div>

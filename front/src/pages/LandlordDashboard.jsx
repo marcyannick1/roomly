@@ -12,24 +12,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount } from '@/lib/api';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2 } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import MatchAnimation from '@/components/MatchAnimation';
 
 export default function LandlordDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(location.state?.user || null);
   const [listings, setListings] = useState([]);
-  const [view, setView] = useState('listings'); // 'listings', 'students' or 'profile'
+  const [view, setView] = useState('listings'); // 'listings', 'students', 'interested' or 'profile'
   const [selectedListing, setSelectedListing] = useState(null);
   const [interestedStudents, setInterestedStudents] = useState([]);
+  const [allReceivedLikes, setAllReceivedLikes] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [listingToDelete, setListingToDelete] = useState(null);
   const [landlordProfile, setLandlordProfile] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({});
+  const [showMatchAnimation, setShowMatchAnimation] = useState(false);
+  const [allMatches, setAllMatches] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -70,6 +74,22 @@ export default function LandlordDashboard() {
         const listingsResponse = await getLandlordListings(landlordId);
         setListings(listingsResponse.data);
         
+        // Charger tous les likes reçus
+        try {
+          const likesResponse = await getLandlordReceivedLikes(landlordId);
+          setAllReceivedLikes(likesResponse.data);
+        } catch (error) {
+          console.log('Erreur chargement des likes:', error);
+        }
+        
+        // Charger tous les matches
+        try {
+          const matchesResponse = await getLandlordMatches(landlordId);
+          setAllMatches(matchesResponse.data);
+        } catch (error) {
+          console.log('Erreur chargement des matches:', error);
+        }
+        
         // Charger le profil bailleur
         try {
           const profileResponse = await getLandlordProfile(landlordId);
@@ -90,15 +110,9 @@ export default function LandlordDashboard() {
     }
   };
 
-  const viewInterestedStudents = async (listing) => {
-    try {
-      setSelectedListing(listing);
-      const response = await getInterestedStudents(listing.id);  // listing.id au lieu de listing_id
-      setInterestedStudents(response.data);
-      setView('students');
-    } catch (error) {
-      toast.error('Erreur de chargement');
-    }
+  const viewInterestedStudents = (listing) => {
+    setSelectedListing(listing);
+    setView('students');
   };
 
   const handleDeleteClick = (listing) => {
@@ -118,13 +132,32 @@ export default function LandlordDashboard() {
     }
   };
 
-  const handleMatch = async (student) => {
+  const handleMatch = async ({ student, listing }) => {
     try {
-      await createMatch(user.id, student.id, selectedListing.id);
-      toast.success('Match créé !');
-      loadData();
+      await createMatch(landlordProfile.id, student.id, listing.id);
+      setShowMatchAnimation(true);
+      setSelectedListing(listing);
+      toast.success('Match créé avec succès ! 💚');
+      // Recharger après 3 secondes (après l'animation)
+      setTimeout(() => {
+        setShowMatchAnimation(false);
+        loadData();
+        viewInterestedStudents(listing); // Recharger la liste des intéressés
+      }, 3000);
     } catch (error) {
-      toast.error('Erreur');
+      console.error('Erreur match:', error);
+      // Gérer les différents types d'erreurs
+      if (error.response?.status === 409) {
+        // Le match existe déjà, afficher le message mais recharger les données pour afficher le badge
+        toast.info('Ce match existe déjà');
+        loadData(); // Recharger pour afficher le badge
+      } else if (error.response?.status === 400) {
+        toast.error("L'étudiant n'a pas liké cette annonce");
+      } else if (error.response?.status === 403) {
+        toast.error("Cette annonce ne vous appartient pas");
+      } else {
+        toast.error('Erreur lors de la création du match');
+      }
     }
   };
 
@@ -135,7 +168,8 @@ export default function LandlordDashboard() {
 
   const navItems = [
     { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-    { id: 'students', icon: Eye, label: 'Intéressés', path: null },
+    { id: 'interested', icon: Heart, label: 'Intéressés', path: null },
+    { id: 'matches', icon: MessageCircle, label: 'Matchs', path: null },
     { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
     { id: 'profile', icon: User, label: 'Profil', path: null },
     { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
@@ -189,8 +223,10 @@ export default function LandlordDashboard() {
                   onClick={() => {
                     if (item.path) {
                       navigate(item.path);
-                    } else if (item.id === 'students') {
-                      setView('students');
+                    } else if (item.id === 'interested') {
+                      setView('interested');
+                    } else if (item.id === 'matches') {
+                      setView('matches');
                     } else if (item.id === 'profile') {
                       setView('profile');
                     } else if (item.id === 'settings') {
@@ -292,11 +328,19 @@ export default function LandlordDashboard() {
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                      {listing.liked_by?.length > 0 && (
-                        <div className="absolute top-3 right-3 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow">
-                          {listing.liked_by.length} like{listing.liked_by.length > 1 ? 's' : ''}
-                        </div>
-                      )}
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        {listing.liked_by?.length > 0 && (
+                          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow">
+                            {listing.liked_by.length} like{listing.liked_by.length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                        {allMatches.filter(match => match.listing_id === listing.id).length > 0 && (
+                          <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />
+                            {allMatches.filter(match => match.listing_id === listing.id).length} match{allMatches.filter(match => match.listing_id === listing.id).length > 1 ? 's' : ''}
+                          </div>
+                        )}
+                      </div>
 
                       <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                         <h3 className="text-lg font-semibold" style={{ fontFamily: 'Outfit' }}>
@@ -324,7 +368,7 @@ export default function LandlordDashboard() {
                           className="flex-1 rounded-full"
                         >
                           <Eye className="w-4 h-4 mr-2" />
-                          Intéressés (0)
+                          Intéressés ({allReceivedLikes.filter(like => like.listing_id === listing.id).length})
                         </Button>
                         <Button
                           variant="default"
@@ -380,68 +424,394 @@ export default function LandlordDashboard() {
               Étudiants intéressés par : {selectedListing?.title}
             </h2>
 
-            {interestedStudents.length === 0 ? (
-              <div className="text-center py-20">
-                <User className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  Aucun étudiant n'a encore liké cette annonce
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {interestedStudents.map((student) => (
+            {(() => {
+              const filteredLikes = allReceivedLikes
+                .filter(like => like.listing_id === selectedListing?.id)
+                .filter(like => {
+                  const isMatched = allMatches.some(match => 
+                    match.student_id === like.student_id && 
+                    match.listing_id === like.listing_id
+                  );
+                  console.log('Like:', like.student_id, 'Listing:', like.listing_id, 'Is matched:', isMatched);
+                  return !isMatched;
+                });
+              
+              return filteredLikes.length === 0 ? (
+                <div className="text-center py-20">
+                  <User className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    Aucun étudiant n'a encore liké cette annonce ou tous les likes ont été matchés
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredLikes.map((like) => (
                   <div
-                    key={student.user.user_id}
-                    className="bg-card rounded-2xl p-6 shadow-sm border border-border/50 hover:shadow-md transition-all"
-                    data-testid={`student-${student.user.user_id}`}
+                    key={like.id}
+                    className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex gap-6">
-                      <div className="w-24 h-24 bg-muted rounded-full overflow-hidden flex-shrink-0">
-                        {student.user.picture ? (
+                    <div className="flex gap-4 items-center">
+                      <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                        {like.student.photo ? (
                           <img
-                            src={student.user.picture}
-                            alt={student.user.name}
+                            src={like.student.photo}
+                            alt={like.student.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <User className="w-12 h-12 text-muted-foreground" />
+                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                            {like.student.name?.charAt(0).toUpperCase() || 'U'}
                           </div>
                         )}
                       </div>
 
                       <div className="flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
-                              {student.profile.first_name} {student.profile.last_name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {student.profile.age} ans • {student.profile.university}
-                            </p>
-                          </div>
-                          <div className="bg-primary text-primary-foreground px-4 py-2 rounded-full font-bold">
-                            {student.profile.compatibility_score}%
-                          </div>
-                        </div>
+                        <h4 className="font-semibold text-foreground">
+                          {like.student.name}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {like.student.university || 'Université non renseignée'}
+                        </p>
+                      </div>
 
-                        <div className="mb-4 space-y-2 text-sm">
-                          <p className="text-foreground">
-                            <span className="font-semibold">Budget:</span> {student.profile.budget}€/mois
-                          </p>
-                          <p className="text-foreground">
-                            <span className="font-semibold">Niveau:</span> {student.profile.education_level}
-                          </p>
-                        </div>
-
+                      <div className="flex gap-2">
                         <Button
-                          onClick={() => handleMatch(student)}
-                          data-testid={`match-${student.user.user_id}`}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            navigate(`/profile/${like.student.user_id}`);
+                          }}
                           className="rounded-full"
                         >
-                          Créer un match
+                          <User className="w-4 h-4 mr-2" />
+                          Voir profil
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            handleMatch({
+                              student: like.student,
+                              listing: selectedListing
+                            });
+                          }}
+                          className="rounded-full bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Matcher
                         </Button>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              );
+            })()}
+          </>
+        )}
+
+        {/* Vue Matches */}
+        {view === 'matches' && (
+          <>
+            <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+              <MessageCircle className="w-8 h-8 text-green-600" />
+              Mes Matchs
+            </h2>
+
+            {allMatches.length === 0 ? (
+              <div className="text-center py-20">
+                <MessageCircle className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground text-lg">
+                  Aucun match pour le moment
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Vos matchs apparaîtront ici
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* Grouper les matches par annonce */}
+                {Object.entries(
+                  allMatches.reduce((acc, match) => {
+                    const listingId = match.listing.id;
+                    if (!acc[listingId]) {
+                      acc[listingId] = {
+                        listing: match.listing,
+                        matches: []
+                      };
+                    }
+                    acc[listingId].matches.push(match);
+                    return acc;
+                  }, {})
+                ).map(([listingId, data]) => (
+                  <div key={listingId} className="bg-white rounded-2xl shadow-md p-6 border border-black/5">
+                    {/* En-tête de l'annonce */}
+                    <div className="flex items-start gap-4 mb-6 pb-4 border-b border-black/10">
+                      <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
+                        {data.listing.photos && data.listing.photos.length > 0 ? (
+                          <img
+                            src={data.listing.photos[0].url}
+                            alt={data.listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629]">
+                            <Home className="w-10 h-10" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-foreground mb-2">
+                          {data.listing.title}
+                        </h3>
+                        <p className="text-muted-foreground text-sm mb-2">
+                          {data.listing.city} • {data.listing.price}€/mois
+                        </p>
+                        <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                          <MessageCircle className="w-4 h-4" />
+                          {data.matches.length} match{data.matches.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Liste des étudiants matchés */}
+                    <div className="space-y-4">
+                      {data.matches.map((match) => (
+                        <div
+                          key={match.id}
+                          className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex gap-4 items-center">
+                            <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                              {match.student?.photo ? (
+                                <img
+                                  src={match.student.photo}
+                                  alt={match.student.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                                  {match.student?.name?.charAt(0).toUpperCase() || 'E'}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-foreground">
+                                {match.student?.name || 'Étudiant'}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {match.student?.university || 'Université non renseignée'}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Matché le {new Date(match.created_at).toLocaleDateString('fr-FR')}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Badge Match */}
+                              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-700">
+                                  Matché 💚
+                                </span>
+                              </div>
+                              
+                              {/* Bouton voir profil */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  navigate(`/profile/${match.student?.user_id}`);
+                                }}
+                                className="rounded-full"
+                              >
+                                <User className="w-4 h-4 mr-2" />
+                                Voir profil
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Vue globale des intéressés */}
+        {view === 'interested' && (
+          <>
+            <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+              <Heart className="w-8 h-8 text-red-500" />
+              Étudiants intéressés
+            </h2>
+
+            {allReceivedLikes.length === 0 ? (
+              <div className="text-center py-20">
+                <Heart className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground text-lg">
+                  Aucun étudiant n'a encore liké vos annonces
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Les étudiants intéressés apparaîtront ici
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {/* Grouper les likes par annonce */}
+                {Object.entries(
+                  allReceivedLikes.reduce((acc, like) => {
+                    const listingId = like.listing.id;
+                    if (!acc[listingId]) {
+                      acc[listingId] = {
+                        listing: like.listing,
+                        likes: []
+                      };
+                    }
+                    acc[listingId].likes.push(like);
+                    return acc;
+                  }, {})
+                ).map(([listingId, data]) => (
+                  <div key={listingId} className="bg-card rounded-2xl p-6 shadow-sm border border-border/50">
+                    {/* En-tête de l'annonce */}
+                    <div className="flex gap-4 items-start mb-6 pb-4 border-b">
+                      <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                        {data.listing.photos && data.listing.photos[0]?.url ? (
+                          <img
+                            src={data.listing.photos[0].url}
+                            alt={data.listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Home className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-foreground mb-2" style={{ fontFamily: 'Outfit' }}>
+                          {data.listing.title}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{data.listing.city}</span>
+                          <span>•</span>
+                          <span className="font-bold text-primary">{data.listing.price}€/mois</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                            {data.likes.length} intéressé{data.likes.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Liste des étudiants intéressés */}
+                    <div className="space-y-4">
+                      {data.likes.map((like) => (
+                        <div
+                          key={like.id}
+                          className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex gap-4 items-center">
+                            <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                              {like.student.photo ? (
+                                <img
+                                  src={like.student.photo}
+                                  alt={like.student.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                                  {like.student.name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-foreground">
+                                {like.student.name}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {like.student.university || 'Université non renseignée'}
+                              </p>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // Voir le profil de l'étudiant
+                                  navigate(`/profile/${like.student.user_id}`);
+                                }}
+                                className="rounded-full"
+                              >
+                                <User className="w-4 h-4 mr-2" />
+                                Voir profil
+                              </Button>
+                              
+                              {like.match && like.match.exists ? (
+                                // Badge "Matché" avec les deux photos
+                                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                                  <div className="flex -space-x-2">
+                                    {/* Photo étudiant */}
+                                    <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
+                                      {like.student.photo ? (
+                                        <img
+                                          src={like.student.photo}
+                                          alt={like.student.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
+                                          {like.student.name?.charAt(0).toUpperCase() || 'E'}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Photo bailleur */}
+                                    <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
+                                      {like.match.landlord?.photo ? (
+                                        <img
+                                          src={like.match.landlord.photo}
+                                          alt={like.match.landlord.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
+                                          {like.match.landlord?.name?.charAt(0).toUpperCase() || 'B'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span className="text-sm font-medium text-green-700">
+                                    Matché 💚
+                                  </span>
+                                </div>
+                              ) : (
+                                // Bouton "Matcher"
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // Créer le match
+                                    handleMatch({
+                                      student: like.student,
+                                      listing: data.listing
+                                    });
+                                  }}
+                                  className="rounded-full bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                                  Matcher
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -709,6 +1079,12 @@ export default function LandlordDashboard() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Animation de match */}
+      <MatchAnimation
+        show={showMatchAnimation}
+        onComplete={() => setShowMatchAnimation(false)}
+      />
       </main>
     </div>
   );
