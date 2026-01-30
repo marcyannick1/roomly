@@ -93,7 +93,7 @@ export default function StudentDashboard() {
   };
 
   const handleLike = async () => {
-    const listing = listings[currentIndex];
+    const listing = listings[currentIndex]?.listing;
     try {
       const userId = user?.id ?? user?.user_id;
       if (!userId) {
@@ -118,7 +118,7 @@ export default function StudentDashboard() {
     navigate('/');
   };
 
-  const currentListing = listings[currentIndex];
+  const currentListing = listings[currentIndex]?.listing;
 
   const navItems = [
     { id: 'feed', icon: Flame, label: 'Découvrir' },
@@ -249,7 +249,7 @@ export default function StudentDashboard() {
                       
                       {/* Compatibility Score Badge */}
                       <div className="absolute top-4 right-4 bg-[#fec629] text-[#212220] px-4 py-2 rounded-full font-bold text-sm shadow-xl">
-                        {currentListing.compatibility_score || 85}% Match
+                        {Math.round(listings[currentIndex]?.score)}% Match
                       </div>
                     </div>
 

@@ -112,7 +112,7 @@ export const deleteListing = (listingId) => {
 };
 
 // Matching
-export const getStudentFeed = (studentId) => api.get(`/students/${studentId}/feed`);
+export const getStudentFeed = (studentId) => api.get(`/ai/recommendations/${studentId}?limit=20`);
 export const likeListing = (studentId, listingId) => api.post(`/students/${studentId}/like/${listingId}`);
 export const unlikeListing = (studentId, listingId) => api.delete(`/students/${studentId}/reaction/${listingId}`);
 export const getStudentLikedListings = (studentId) => api.get(`/students/${studentId}/liked`);

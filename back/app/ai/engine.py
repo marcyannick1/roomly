@@ -1,6 +1,7 @@
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sklearn.metrics.pairwise import cosine_similarity
 
 from app.ai.embeddings import create_student_embedding, create_listing_embedding
@@ -29,7 +30,7 @@ class AIRecommendationEngine:
 
         student_vec = create_student_embedding(student)
 
-        query = select(Listing)
+        query = select(Listing).options(selectinload(Listing.photos))
         if student.max_budget:
             query = query.where(Listing.price <= student.max_budget * 1.2)
 
@@ -46,16 +47,13 @@ class AIRecommendationEngine:
                 listing_vec.reshape(1, -1)
             )[0][0]
 
-            # Normalise le score entre 0 et 100
-            # Avec Sentence-BERT, similarity est déjà entre 0 et 1 pour des textes similaires
             score = similarity * 100
             rules = apply_business_rules(student, listing)
-
             final_score = score * rules["multiplier"]
 
             recommendations.append(
                 RecommendationOut(
-                    listing_id=listing.id,
+                    listing=listing,  # 👈 objet complet
                     score=round(final_score, 2),
                     reasons=rules["reasons"]
                 )
