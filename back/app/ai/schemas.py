@@ -1,6 +1,13 @@
 from pydantic import BaseModel
 
+from app.schemas.listing import ListingOut
+
+
 class RecommendationOut(BaseModel):
-    listing_id: int
     score: float
     reasons: list[str]
+    listing: ListingOut
+
+    class Config:
+        from_attributes = True
+
