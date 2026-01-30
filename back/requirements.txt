@@ -12,3 +12,7 @@ email-validator
 python-dotenv
 alembic
 cloudinary
+faker
+sentence-transformers
+numpy
+psycopg2-binary

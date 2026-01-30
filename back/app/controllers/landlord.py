@@ -3,8 +3,8 @@ from sqlalchemy import select
 from app.models.landlord import Landlord
 from app.schemas.landlord import LandlordCreate
 
-async def create_landlord(db: AsyncSession, student: LandlordCreate) -> Landlord:
-    db_landlord = Landlord(**student.model_dump())
+async def create_landlord(db: AsyncSession, landlord: LandlordCreate) -> Landlord:
+    db_landlord = Landlord(**landlord.model_dump())
     db.add(db_landlord)
     await db.commit()
     await db.refresh(db_landlord)
