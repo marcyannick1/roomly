@@ -1,0 +1,364 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { getCurrentUser, updateStudentProfile, uploadProfilePhoto } from '@/lib/api';
+import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
+import { Camera } from 'lucide-react';
+
+export default function StudentOnboarding() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = location.state?.user;
+  
+  const [step, setStep] = useState(1);
+  const [profile, setProfile] = useState({
+    user_id: user?.id ?? user?.user_id,
+    first_name: '',
+    last_name: '',
+    age: '',
+    university: '',
+    education_level: '',
+    budget: '',
+    guarantor_type: 'parents',
+    guarantor_income: '',
+    lifestyle: {
+      smoking: 'no',
+      pets: 'no',
+      noise_level: 5,
+    },
+    preferences: {
+      type: 'studio',
+      furnished: true,
+      amenities: []
+    },
+    documents: [],
+    completed: false
+  });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+
+  useEffect(() => {
+    if (profile.user_id) return;
+
+    const loadUser = async () => {
+      try {
+        const { data } = await getCurrentUser();
+        const id = data?.user?.id;
+        if (id) {
+          setProfile((prev) => ({ ...prev, user_id: id }));
+        }
+      } catch (error) {
+        console.error('Erreur chargement utilisateur:', error);
+      }
+    };
+
+    loadUser();
+  }, [profile.user_id]);
+
+  const handleNext = () => {
+    if (step < 4) setStep(step + 1);
+    else handleSubmit();
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (!profile.user_id) {
+        toast.error("Utilisateur introuvable. Veuillez vous reconnecter.");
+        return;
+      }
+
+      // Upload photo si fournie
+      if (photoFile) {
+        await uploadProfilePhoto(profile.user_id, photoFile);
+      }
+
+      // Transformer les données au format API attendu
+      const studentData = {
+        user_id: profile.user_id,
+        room_type: profile.preferences?.type || 'studio',
+        furnished: profile.preferences?.furnished || false,
+        smoking: profile.lifestyle?.smoking === 'yes',
+        pets: profile.lifestyle?.pets === 'yes',
+        noise_level: profile.lifestyle?.noise_level || 5,
+        max_budget: parseFloat(profile.budget) || 0,
+        guarantor_income: parseFloat(profile.guarantor_income) || 0,
+        university: profile.university || '',
+        study_level: profile.education_level || '',
+        passions: '',
+      };
+      
+      await updateStudentProfile(studentData);
+      toast.success('Profil complété !');
+      navigate('/student/dashboard', { state: { user } });
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la sauvegarde');
+    }
+  };
+
+  const progress = (step / 4) * 100;
+
+  return (
+    <div className="min-h-screen bg-background py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="mb-8">
+          <Progress value={progress} className="h-2" data-testid="onboarding-progress" />
+          <p className="text-sm text-muted-foreground mt-2">Étape {step} sur 4</p>
+        </div>
+
+        <div className="bg-card rounded-3xl p-8 shadow-lg border border-border/50">
+          {step === 1 && (
+            <div className="space-y-6" data-testid="onboarding-step-1">
+              <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
+                Informations personnelles
+              </h2>
+              
+              {/* Photo de profil */}
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-4 border-[#fec629]">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera className="w-12 h-12 text-gray-400" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPhotoFile(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="absolute bottom-0 right-0 bg-[#fec629] rounded-full p-2 cursor-pointer hover:bg-[#e5b525] transition-colors"
+                  >
+                    <Camera className="w-5 h-5 text-[#212220]" />
+                  </label>
+                </div>
+                <p className="text-sm text-muted-foreground">Photo de profil (optionnelle)</p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Prénom</Label>
+                  <Input
+                    data-testid="first-name-input"
+                    value={profile.first_name}
+                    onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                    placeholder="Jean"
+                    className="mt-2 h-12 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <Label>Nom</Label>
+                  <Input
+                    data-testid="last-name-input"
+                    value={profile.last_name}
+                    onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                    placeholder="Dupont"
+                    className="mt-2 h-12 rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Âge</Label>
+                <Input
+                  data-testid="age-input"
+                  type="number"
+                  value={profile.age}
+                  onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) })}
+                  placeholder="20"
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <Label>Université</Label>
+                <Input
+                  data-testid="university-input"
+                  value={profile.university}
+                  onChange={(e) => setProfile({ ...profile, university: e.target.value })}
+                  placeholder="Université Paris-Saclay"
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <Label>Niveau d'études</Label>
+                <Input
+                  data-testid="education-level-input"
+                  value={profile.education_level}
+                  onChange={(e) => setProfile({ ...profile, education_level: e.target.value })}
+                  placeholder="Master 1"
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6" data-testid="onboarding-step-2">
+              <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
+                Budget & Solvabilité
+              </h2>
+              
+              <div>
+                <Label>Budget mensuel maximum (€)</Label>
+                <Input
+                  data-testid="budget-input"
+                  type="number"
+                  value={profile.budget}
+                  onChange={(e) => setProfile({ ...profile, budget: parseInt(e.target.value) })}
+                  placeholder="600"
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+
+              <div>
+                <Label>Revenus du garant (€/mois)</Label>
+                <Input
+                  data-testid="guarantor-income-input"
+                  type="number"
+                  value={profile.guarantor_income}
+                  onChange={(e) => setProfile({ ...profile, guarantor_income: parseInt(e.target.value) })}
+                  placeholder="2500"
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-6" data-testid="onboarding-step-3">
+              <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
+                Mode de vie
+              </h2>
+              
+              <div>
+                <Label>Fumeur ?</Label>
+                <select
+                  data-testid="smoking-select"
+                  value={profile.lifestyle.smoking}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    lifestyle: { ...profile.lifestyle, smoking: e.target.value }
+                  })}
+                  className="mt-2 w-full h-12 rounded-xl border border-input bg-background px-3"
+                >
+                  <option value="no">Non</option>
+                  <option value="yes">Oui</option>
+                </select>
+              </div>
+
+              <div>
+                <Label>Animaux ?</Label>
+                <select
+                  data-testid="pets-select"
+                  value={profile.lifestyle.pets}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    lifestyle: { ...profile.lifestyle, pets: e.target.value }
+                  })}
+                  className="mt-2 w-full h-12 rounded-xl border border-input bg-background px-3"
+                >
+                  <option value="no">Non</option>
+                  <option value="yes">Oui</option>
+                </select>
+              </div>
+
+              <div>
+                <Label>Niveau de bruit toléré (1-10)</Label>
+                <Input
+                  data-testid="noise-level-input"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={profile.lifestyle.noise_level}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    lifestyle: { ...profile.lifestyle, noise_level: parseInt(e.target.value) }
+                  })}
+                  className="mt-2 h-12 rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-6" data-testid="onboarding-step-4">
+              <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
+                Préférences de logement
+              </h2>
+              
+              <div>
+                <Label>Type recherché</Label>
+                <select
+                  data-testid="type-select"
+                  value={profile.preferences.type}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    preferences: { ...profile.preferences, type: e.target.value }
+                  })}
+                  className="mt-2 w-full h-12 rounded-xl border border-input bg-background px-3"
+                >
+                  <option value="studio">Studio</option>
+                  <option value="t1">T1</option>
+                  <option value="t2">T2</option>
+                  <option value="colocation">Colocation</option>
+                </select>
+              </div>
+
+              <div>
+                <Label>Meublé ?</Label>
+                <select
+                  data-testid="furnished-select"
+                  value={profile.preferences.furnished}
+                  onChange={(e) => setProfile({
+                    ...profile,
+                    preferences: { ...profile.preferences, furnished: e.target.value === 'true' }
+                  })}
+                  className="mt-2 w-full h-12 rounded-xl border border-input bg-background px-3"
+                >
+                  <option value="true">Oui</option>
+                  <option value="false">Non</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between mt-8">
+            {step > 1 && (
+              <Button
+                variant="outline"
+                onClick={() => setStep(step - 1)}
+                data-testid="onboarding-prev-btn"
+                className="rounded-full px-8"
+              >
+                Précédent
+              </Button>
+            )}
+            <Button
+              onClick={handleNext}
+              data-testid="onboarding-next-btn"
+              className="rounded-full px-8 ml-auto"
+            >
+              {step === 4 ? 'Terminer' : 'Suivant'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
