@@ -31,6 +31,13 @@ export const logout = () => api.post('/auth/logout');
 
 // Users
 export const getUserById = (userId) => api.get(`/users/${userId}`);
+export const uploadProfilePhoto = (userId, photoFile) => {
+  const formData = new FormData();
+  formData.append('photo', photoFile);
+  return api.post(`/users/${userId}/photo`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+};
 
 // Profiles
 export const getStudentProfile = (userId) => api.get(`/students/profile/${userId}`);

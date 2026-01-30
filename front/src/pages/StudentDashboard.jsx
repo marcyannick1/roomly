@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, getStudentFeed, likeListing, getStudentMatches, getStudentLikedListings, unlikeListing, updateStudentProfile } from '@/lib/api';
+import { getCurrentUser, getStudentFeed, likeListing, getStudentMatches, getStudentLikedListings, unlikeListing, updateStudentProfile, getStudentProfile } from '@/lib/api';
 import { toast } from 'sonner';
 import { Home, Heart, X, LogOut, User, MessageCircle, Settings, Flame, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,6 +15,9 @@ export default function StudentDashboard() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matches, setMatches] = useState([]);
   const [view, setView] = useState('feed');
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({});
 
   useEffect(() => {
     loadData();
@@ -44,6 +47,10 @@ export default function StudentDashboard() {
 
         const likedResponse = await getStudentLikedListings(userId);
         setLikedListings(likedResponse.data || []);
+
+        const profileResponse = await getStudentProfile(userId);
+        setStudentProfile(profileResponse.data);
+        setProfileForm(profileResponse.data);
       } catch (error) {
         if (error.response?.status === 404) {
           const minimalProfile = {
@@ -71,6 +78,10 @@ export default function StudentDashboard() {
 
           const likedResponse = await getStudentLikedListings(userId);
           setLikedListings(likedResponse.data || []);
+
+          const profileResponse = await getStudentProfile(userId);
+          setStudentProfile(profileResponse.data);
+          setProfileForm(profileResponse.data);
         } else {
           throw error;
         }
@@ -508,7 +519,180 @@ export default function StudentDashboard() {
                 </div>
               )}
 
-              {(view === 'matches' || view === 'profile' || view === 'settings') && (
+              {view === 'profile' && studentProfile && (
+                <div className="space-y-6">
+                  {!isEditingProfile ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Type de logement</h3>
+                          <p className="text-lg font-medium capitalize">{studentProfile.room_type || 'Non renseigné'}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Budget maximum</h3>
+                          <p className="text-lg font-medium">{studentProfile.max_budget || 0}€/mois</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Meublé</h3>
+                          <p className="text-lg font-medium">{studentProfile.furnished ? 'Oui' : 'Non'}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Fumeur</h3>
+                          <p className="text-lg font-medium">{studentProfile.smoking ? 'Oui' : 'Non'}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Animaux</h3>
+                          <p className="text-lg font-medium">{studentProfile.pets ? 'Oui' : 'Non'}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Niveau de bruit toléré</h3>
+                          <p className="text-lg font-medium">{studentProfile.noise_level || 5}/10</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Université</h3>
+                          <p className="text-lg font-medium">{studentProfile.university || 'Non renseigné'}</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="text-sm font-semibold text-gray-600 mb-2">Niveau d'études</h3>
+                          <p className="text-lg font-medium">{studentProfile.study_level || 'Non renseigné'}</p>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h3 className="text-sm font-semibold text-gray-600 mb-2">Centres d'intérêt</h3>
+                        <p className="text-lg">{studentProfile.passions || 'Non renseigné'}</p>
+                      </div>
+                      <Button
+                        onClick={() => setIsEditingProfile(true)}
+                        className="bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
+                      >
+                        Modifier mon profil
+                      </Button>
+                    </>
+                  ) : (
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      try {
+                        await updateStudentProfile(profileForm);
+                        setStudentProfile(profileForm);
+                        setIsEditingProfile(false);
+                        toast.success('Profil mis à jour !');
+                      } catch (error) {
+                        console.error(error);
+                        toast.error('Erreur lors de la mise à jour');
+                      }
+                    }} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Type de logement</label>
+                          <select
+                            value={profileForm.room_type || ''}
+                            onChange={(e) => setProfileForm({...profileForm, room_type: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                          >
+                            <option value="studio">Studio</option>
+                            <option value="T1">T1</option>
+                            <option value="T2">T2</option>
+                            <option value="colocation">Colocation</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Budget max (€/mois)</label>
+                          <input
+                            type="number"
+                            value={profileForm.max_budget || ''}
+                            onChange={(e) => setProfileForm({...profileForm, max_budget: parseFloat(e.target.value)})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Université</label>
+                          <input
+                            type="text"
+                            value={profileForm.university || ''}
+                            onChange={(e) => setProfileForm({...profileForm, university: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Niveau d'études</label>
+                          <input
+                            type="text"
+                            value={profileForm.study_level || ''}
+                            onChange={(e) => setProfileForm({...profileForm, study_level: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Niveau de bruit (1-10)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={profileForm.noise_level || 5}
+                            onChange={(e) => setProfileForm({...profileForm, noise_level: parseInt(e.target.value)})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Centres d'intérêt</label>
+                        <textarea
+                          value={profileForm.passions || ''}
+                          onChange={(e) => setProfileForm({...profileForm, passions: e.target.value})}
+                          rows="3"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#fec629]"
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={profileForm.furnished || false}
+                            onChange={(e) => setProfileForm({...profileForm, furnished: e.target.checked})}
+                            className="w-4 h-4 text-[#fec629] focus:ring-[#fec629] rounded"
+                          />
+                          <span className="text-sm">Meublé</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={profileForm.smoking || false}
+                            onChange={(e) => setProfileForm({...profileForm, smoking: e.target.checked})}
+                            className="w-4 h-4 text-[#fec629] focus:ring-[#fec629] rounded"
+                          />
+                          <span className="text-sm">Fumeur</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={profileForm.pets || false}
+                            onChange={(e) => setProfileForm({...profileForm, pets: e.target.checked})}
+                            className="w-4 h-4 text-[#fec629] focus:ring-[#fec629] rounded"
+                          />
+                          <span className="text-sm">Animaux</span>
+                        </label>
+                      </div>
+                      <div className="flex gap-3">
+                        <Button type="submit" className="bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold">
+                          Enregistrer
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setProfileForm(studentProfile);
+                            setIsEditingProfile(false);
+                          }}
+                          variant="outline"
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {(view === 'matches' || view === 'settings') && (
                 <p className="text-gray-600">Section en développement... 🚧</p>
               )}
             </div>
