@@ -54,9 +54,11 @@ async def create_match(
 
 
 async def get_match(db: AsyncSession, match_id: int) -> Match | None:
-    """Récupérer un match par son ID"""
+    """Récupérer un match par son ID avec relations chargées"""
     result = await db.execute(
-        select(Match).where(Match.id == match_id)
+        select(Match)
+        .where(Match.id == match_id)
+        .options(selectinload(Match.student))
     )
     return result.scalar_one_or_none()
 

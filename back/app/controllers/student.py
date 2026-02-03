@@ -10,6 +10,10 @@ async def create_student(db: AsyncSession, student: StudentCreate) -> Student:
     await db.refresh(db_student)
     return db_student
 
+async def get_student(db: AsyncSession, student_id: int) -> Student | None:
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    return result.scalar_one_or_none()
+
 async def get_student_by_user(db: AsyncSession, user_id: int) -> Student | None:
     result = await db.execute(select(Student).where(Student.user_id == user_id))
     return result.scalar_one_or_none()

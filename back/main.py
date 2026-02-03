@@ -6,6 +6,8 @@ from app.routes import listing
 from app.routes import listing_photo
 from app.routes import student
 from app.routes import landlord
+from app.routes import notification
+from app.routes import message
 # from app.routes import ai  # Temporairement désactivé - dépendances AI manquantes
 from app.routes import match
 
@@ -30,4 +32,7 @@ app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(listing.router, prefix="/listings", tags=["Listings"])
 app.include_router(listing_photo.router, prefix="/listing-photos", tags=["Listing Photos"])
 app.include_router(match.router, prefix="/matches", tags=["Matches"])
+app.include_router(message.router, prefix="/conversations", tags=["Messages"])
+app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
 # app.include_router(ai.router, prefix="/ai", tags=["AI"])  # Temporairement désactivé
+

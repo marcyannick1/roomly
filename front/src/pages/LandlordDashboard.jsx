@@ -12,9 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches } from '@/lib/api';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches, deleteMatch, rejectStudentLike, getMatchMessages, sendMessage } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle, X, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MatchAnimation from '@/components/MatchAnimation';
 
@@ -34,6 +34,11 @@ export default function LandlordDashboard() {
   const [profileForm, setProfileForm] = useState({});
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
   const [allMatches, setAllMatches] = useState([]);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState('');
+  const [viewingProfile, setViewingProfile] = useState(null); // Pour afficher le profil de l'étudiant
+  const [viewingListing, setViewingListing] = useState(null); // Pour afficher les détails du logement
 
   useEffect(() => {
     loadData();
@@ -161,6 +166,71 @@ export default function LandlordDashboard() {
     }
   };
 
+  const handleRejectMatch = async (matchId, listingId) => {
+    try {
+      await deleteMatch(matchId);
+      toast.success('Match refusé');
+      loadData();
+      // Recharger la liste des intéressés pour le listing
+      const listing = listings.find(l => l.id === listingId);
+      if (listing && view === 'students') {
+        viewInterestedStudents(listing);
+      }
+    } catch (error) {
+      console.error('Erreur lors du refus du match:', error);
+      toast.error('Erreur lors du refus du match');
+    }
+  };
+
+  const handleRejectLike = async (userIdOfStudent, listingId) => {
+    try {
+      const landlordId = landlordProfile?.id; // L'ID du landlord dans la table landlords
+      await rejectStudentLike(landlordId, userIdOfStudent, listingId);
+      toast.success('Like refusé - Notification envoyée à l\'étudiant');
+      loadData();
+      // Recharger la liste des intéressés pour le listing
+      const listing = listings.find(l => l.id === listingId);
+      if (listing && view === 'students') {
+        viewInterestedStudents(listing);
+      }
+    } catch (error) {
+      console.error('Erreur lors du refus du like:', error);
+      toast.error('Erreur lors du refus du like');
+    }
+  };
+
+  const loadMessages = async (match) => {
+    try {
+      const response = await getMatchMessages(match.id);
+      setMessages(response.data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des messages:', error);
+      toast.error('Erreur lors du chargement des messages');
+    }
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!messageText.trim() || !selectedMatch) return;
+
+    try {
+      await sendMessage(selectedMatch.id, {
+        content: messageText
+      });
+      setMessageText('');
+      loadMessages(selectedMatch);
+      toast.success('Message envoyé');
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi:', error);
+      toast.error('Erreur lors de l\'envoi du message');
+    }
+  };
+
+  const selectMatch = (match) => {
+    setSelectedMatch(match);
+    loadMessages(match);
+  };
+
   const handleLogout = () => {
     document.cookie = 'session_token=; path=/; max-age=0';
     navigate('/');
@@ -168,8 +238,9 @@ export default function LandlordDashboard() {
 
   const navItems = [
     { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-    { id: 'interested', icon: Heart, label: 'Intéressés', path: null },
-    { id: 'matches', icon: MessageCircle, label: 'Matchs', path: null },
+    { id: 'interested', icon: Flame, label: 'Intéressés', path: null },
+    { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: null },
+    { id: 'messages', icon: MessageCircle, label: 'Messages', path: null },
     { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
     { id: 'profile', icon: User, label: 'Profil', path: null },
     { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
@@ -227,6 +298,8 @@ export default function LandlordDashboard() {
                       setView('interested');
                     } else if (item.id === 'matches') {
                       setView('matches');
+                    } else if (item.id === 'messages') {
+                      setView('messages');
                     } else if (item.id === 'profile') {
                       setView('profile');
                     } else if (item.id === 'settings') {
@@ -432,7 +505,6 @@ export default function LandlordDashboard() {
                     match.student_id === like.student_id && 
                     match.listing_id === like.listing_id
                   );
-                  console.log('Like:', like.student_id, 'Listing:', like.listing_id, 'Is matched:', isMatched);
                   return !isMatched;
                 });
               
@@ -485,6 +557,17 @@ export default function LandlordDashboard() {
                         >
                           <User className="w-4 h-4 mr-2" />
                           Voir profil
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            handleRejectLike(like.student.user_id, like.listing_id);
+                          }}
+                          className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Refuser
                         </Button>
                         
                         <Button
@@ -792,21 +875,34 @@ export default function LandlordDashboard() {
                                   </span>
                                 </div>
                               ) : (
-                                // Bouton "Matcher"
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    // Créer le match
-                                    handleMatch({
-                                      student: like.student,
-                                      listing: data.listing
-                                    });
-                                  }}
-                                  className="rounded-full bg-green-600 hover:bg-green-700"
-                                >
-                                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  Matcher
-                                </Button>
+                                // Boutons "Refuser" et "Matcher"
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      handleRejectLike(like.student.user_id, like.listing_id);
+                                    }}
+                                    className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+                                  >
+                                    <X className="w-4 h-4 mr-2" />
+                                    Refuser
+                                  </Button>
+                                  
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      // Créer le match
+                                      handleMatch({
+                                        student: like.student,
+                                        listing: data.listing
+                                      });
+                                    }}
+                                    className="rounded-full bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    Matcher
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -814,6 +910,262 @@ export default function LandlordDashboard() {
                       ))}
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {view === 'messages' && (
+          <>
+            <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+              <MessageCircle className="w-8 h-8 text-blue-600" />
+              Mes Messages
+            </h2>
+
+            {allMatches.length === 0 ? (
+              <div className="text-center py-20">
+                <MessageCircle className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground text-lg">
+                  Aucun match pour le moment
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Vos conversations apparaîtront ici une fois que vous aurez matché
+                </p>
+              </div>
+            ) : selectedMatch ? (
+              <>
+                {/* Vue profil de l'étudiant */}
+                {viewingProfile ? (
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+                    <button
+                      onClick={() => setViewingProfile(null)}
+                      className="flex items-center gap-2 text-gray-500 hover:text-[#212220] transition-colors mb-4"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Retour à la conversation
+                    </button>
+                    
+                    <div className="flex flex-col items-center mb-6">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 mb-4">
+                        {viewingProfile.photo ? (
+                          <img src={viewingProfile.photo} alt={viewingProfile.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-[#212220] text-[#fec629] font-bold flex items-center justify-center text-3xl">
+                            {viewingProfile.name?.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <h2 className="text-2xl font-bold text-[#212220]">{viewingProfile.name}</h2>
+                      <p className="text-gray-600">{viewingProfile.email}</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h3 className="font-semibold text-[#212220] mb-2">Type de compte</h3>
+                        <p className="text-gray-600">Étudiant</p>
+                      </div>
+                      {viewingProfile.telephone && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="font-semibold text-[#212220] mb-2">Téléphone</h3>
+                          <p className="text-gray-600">{viewingProfile.telephone}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : viewingListing ? (
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 max-h-[600px] overflow-y-auto">
+                    <button
+                      onClick={() => setViewingListing(null)}
+                      className="flex items-center gap-2 text-gray-500 hover:text-[#212220] transition-colors mb-4"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Retour à la conversation
+                    </button>
+                    
+                    {viewingListing.photos && viewingListing.photos.length > 0 && (
+                      <img 
+                        src={viewingListing.photos[0].url} 
+                        alt={viewingListing.title}
+                        className="w-full h-64 object-cover rounded-xl mb-4"
+                      />
+                    )}
+                    
+                    <h2 className="text-2xl font-bold text-[#212220] mb-2">{viewingListing.title}</h2>
+                    <p className="text-xl text-[#fec629] font-bold mb-4">{viewingListing.price}€/mois</p>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h3 className="font-semibold text-[#212220] mb-2">Description</h3>
+                        <p className="text-gray-600">{viewingListing.description}</p>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h3 className="font-semibold text-[#212220] mb-2">Adresse</h3>
+                        <p className="text-gray-600">{viewingListing.address}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="font-semibold text-[#212220] mb-1 text-sm">Surface</h3>
+                          <p className="text-gray-600">{viewingListing.size}m²</p>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="font-semibold text-[#212220] mb-1 text-sm">Meublé</h3>
+                          <p className="text-gray-600">{viewingListing.furnished ? 'Oui' : 'Non'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col h-[600px]">
+                    {/* En-tête conversation - style Instagram */}
+                    <div className="flex items-center gap-3 p-4 border-b border-gray-200">
+                      <button
+                        onClick={() => setSelectedMatch(null)}
+                        className="text-gray-500 hover:text-[#212220] transition-colors"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      
+                      {/* Photo + Nom de la personne - CLIQUABLES */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <button
+                          onClick={() => setViewingProfile(selectedMatch.student)}
+                          className="flex items-center gap-3 hover:opacity-80 transition-opacity bg-transparent"
+                        >
+                          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                            {selectedMatch.student?.photo ? (
+                              <img src={selectedMatch.student.photo} alt={selectedMatch.student.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-[#212220] text-[#fec629] font-bold flex items-center justify-center text-sm">
+                                {selectedMatch.student?.name?.charAt(0).toUpperCase() || 'E'}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="text-left">
+                            <h3 className="font-semibold text-[#212220] text-sm truncate">{selectedMatch.student?.name || 'Étudiant'}</h3>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setViewingListing(selectedMatch.listing)}
+                          className="text-xs text-gray-500 truncate hover:text-[#fec629] transition-colors text-left flex-1 min-w-0 bg-transparent"
+                        >
+                          {selectedMatch.listing.title}
+                        </button>
+                      </div>
+                    </div>
+
+                {/* Messages - anciens en haut, nouveaux en bas */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm">Aucun message - Soyez le premier à écrire !</p>
+                    </div>
+                  ) : (
+                    messages.map((msg) => {
+                      const isCurrentUser = msg.sender_id === user?.id || msg.sender_id === user?.user_id;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex gap-2 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}
+                        >
+                          {/* Photo de profil */}
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                            {isCurrentUser ? (
+                              user?.photo ? (
+                                <img src={user.photo} alt="Vous" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-[#fec629] text-[#212220] font-bold flex items-center justify-center text-xs">
+                                  {user?.name?.charAt(0).toUpperCase() || 'M'}
+                                </div>
+                              )
+                            ) : (
+                              selectedMatch.student?.photo ? (
+                                <img src={selectedMatch.student.photo} alt={selectedMatch.student.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-[#212220] text-[#fec629] font-bold flex items-center justify-center text-xs">
+                                  {selectedMatch.student?.name?.charAt(0).toUpperCase() || 'E'}
+                                </div>
+                              )
+                            )}
+                          </div>
+                          
+                          {/* Bulle de message */}
+                          <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                            <div
+                              className={`px-4 py-2 rounded-2xl ${
+                                isCurrentUser
+                                  ? 'bg-[#fec629] text-[#212220] rounded-tr-sm'
+                                  : 'bg-white text-[#212220] border border-gray-200 rounded-tl-sm'
+                              }`}
+                            >
+                              <p className="text-sm leading-relaxed">{msg.content}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 px-2">
+                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Formulaire d'envoi */}
+                <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white flex gap-2">
+                  <input
+                    type="text"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder="Écrivez un message..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#fec629] focus:border-transparent"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!messageText.trim()}
+                    className="bg-[#fec629] hover:bg-[#e5b525] disabled:opacity-50 disabled:cursor-not-allowed text-[#212220] p-3 rounded-full transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </form>
+              </div>
+              )}
+            </>
+              ) : (
+              <div className="space-y-2">
+                {allMatches.map((match) => (
+                  <button
+                    key={match.id}
+                    onClick={() => selectMatch(match)}
+                    className="w-full p-4 bg-gray-50 hover:bg-[#fec629]/10 rounded-xl text-left transition-colors border border-gray-200 hover:border-[#fec629]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden">
+                        {match.student?.photo ? (
+                          <img src={match.student.photo} alt={match.student.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-[#212220] text-[#fec629] font-bold flex items-center justify-center">
+                            {match.student?.name?.charAt(0).toUpperCase() || 'E'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-[#212220]">{match.listing.title}</h4>
+                        <p className="text-sm text-gray-600">Avec {match.student?.name || 'Étudiant'}</p>
+                      </div>
+                      <MessageCircle className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </button>
                 ))}
               </div>
             )}

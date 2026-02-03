@@ -39,7 +39,7 @@ async def update_or_create_student_profile(student: StudentCreate, db: AsyncSess
 
 @router.get("/{user_id}/feed", response_model=list[ListingOut])
 async def get_student_feed(user_id: int, db: AsyncSession = Depends(get_db)):
-    """Récupérer le feed d'annonces pour un étudiant, en excluant TOUTES les annonces déjà matchées avec n'importe quel étudiant"""
+    """Récupérer le feed d'annonces pour un étudiant"""
     # Récupérer le profil étudiant à partir du user_id
     student = await student_ctrl.get_student_by_user(db, user_id)
     if not student:
@@ -48,20 +48,7 @@ async def get_student_feed(user_id: int, db: AsyncSession = Depends(get_db)):
     # Récupérer toutes les annonces
     all_listings = await listing_ctrl.get_all_listings(db)
     
-    # Récupérer les IDs de TOUTES les annonces qui ont déjà un match (avec n'importe quel étudiant)
-    from app.models.match import Match
-    result = await db.execute(
-        select(Match.listing_id).distinct()
-    )
-    matched_listing_ids = set(result.scalars().all())
-    
-    # Filtrer les annonces pour exclure TOUTES celles qui ont déjà un match
-    available_listings = [
-        listing for listing in all_listings 
-        if listing.id not in matched_listing_ids
-    ]
-    
-    return available_listings
+    return all_listings
 
 @router.post("/{user_id}/like/{listing_id}")
 async def like_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):

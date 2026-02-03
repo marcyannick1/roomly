@@ -121,13 +121,21 @@ export const getStudentLikedListings = (studentId) => api.get(`/students/${stude
 export const getInterestedStudents = (listingId) => api.get(`/listings/${listingId}/interested-students`);
 export const getLandlordReceivedLikes = (landlordId) => api.get(`/landlords/${landlordId}/likes`);
 export const createMatch = (landlordId, studentId, listingId) => api.post(`/landlords/${landlordId}/match/${studentId}/${listingId}`);
+export const deleteMatch = (matchId) => api.delete(`/matches/${matchId}`);
 export const getStudentMatches = (userId) => api.get(`/matches/user/${userId}`);
 export const getLandlordMatches = (landlordId) => api.get(`/matches/landlord/${landlordId}`);
 
 // Messages
-export const sendMessage = (message) => api.post('/messages', message);
-export const getMatchMessages = (matchId) => api.get(`/matches/${matchId}/messages`);
-export const markMessageRead = (messageId) => api.patch(`/messages/${messageId}/read`);
+export const sendMessage = (matchId, message) => api.post(`/conversations/${matchId}/messages`, message);
+export const getMatchMessages = (matchId) => api.get(`/conversations/${matchId}/messages`);
+export const markMessagesAsRead = (matchId) => api.put(`/conversations/${matchId}/read`);
+
+// Notifications
+export const getUserNotifications = (userId, unreadOnly = false) => api.get(`/notifications/user/${userId}`, { params: { unread_only: unreadOnly } });
+export const getUnreadNotificationsCount = (userId) => api.get(`/notifications/user/${userId}/unread-count`);
+export const markNotificationAsRead = (notificationId) => api.put(`/notifications/${notificationId}/read`);
+export const markAllNotificationsAsRead = (userId) => api.put(`/notifications/user/${userId}/read-all`);
+export const rejectStudentLike = (landlordId, studentUserId, listingId) => api.delete(`/landlords/${landlordId}/reject-like/${studentUserId}/${listingId}`);
 
 // Upload
 export const uploadFile = (file) => {

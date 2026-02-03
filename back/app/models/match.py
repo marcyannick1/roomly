@@ -17,3 +17,4 @@ class Match(Base):
     # Relations
     listing = relationship("Listing", foreign_keys=[listing_id])
     student = relationship("Student", foreign_keys=[student_id])
+    messages = relationship("Message", back_populates="match", cascade="all, delete-orphan")

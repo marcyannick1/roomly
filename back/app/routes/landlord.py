@@ -4,10 +4,13 @@ from app.db.session import get_db
 from app.schemas.landlord import LandlordOut, LandlordCreate
 from app.schemas.listing import LikeWithDetailsOut
 from app.schemas.match import MatchCreate, MatchOut
+from app.schemas.notification import NotificationCreate
 from app.controllers import landlord as landlord_ctrl
 from app.controllers import user as crud_user
 from app.controllers import listing as listing_ctrl
 from app.controllers import match as match_ctrl
+from app.controllers import notification as notification_ctrl
+from app.controllers import student as student_ctrl
 
 router = APIRouter(tags=["Landlords"])
 
@@ -81,7 +84,23 @@ async def create_match_with_student(
     )
     
     try:
-        return await match_ctrl.create_match(db, match_data)
+        match = await match_ctrl.create_match(db, match_data)
+        
+        # Créer une notification pour l'étudiant
+        student = await student_ctrl.get_student(db, student_id)
+        if student:
+            landlord_user = await crud_user.get_user_by_id(db, landlord.user_id)
+            notification_data = NotificationCreate(
+                user_id=student.user_id,
+                type="match_created",
+                title="🎉 Félicitations, vous avez matché !",
+                message=f"Vous avez matché avec {landlord_user.name} pour l'annonce '{listing.title}'. N'hésitez pas à envoyer un message pour visiter l'appartement !",
+                listing_id=listing_id,
+                landlord_id=landlord.user_id
+            )
+            await notification_ctrl.create_notification(db, notification_data)
+        
+        return match
     except Exception as e:
         # Si le match existe déjà, retourner une erreur 409 Conflict
         if "duplicate key" in str(e) or "UniqueViolationError" in str(e):
@@ -96,3 +115,43 @@ async def get_landlord_matches(landlord_id: int, db: AsyncSession = Depends(get_
     if not landlord:
         raise HTTPException(status_code=404, detail="Landlord not found")
     return await match_ctrl.get_landlord_matches(db, landlord.user_id)
+
+@router.delete("/{landlord_id}/reject-like/{student_user_id}/{listing_id}")
+async def reject_student_like(
+    landlord_id: int,
+    student_user_id: int,
+    listing_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Refuser le like d'un étudiant et créer une notification"""
+    # Vérifier que le landlord existe
+    landlord = await landlord_ctrl.get_landlord(db, landlord_id)
+    if not landlord:
+        raise HTTPException(status_code=404, detail="Landlord not found")
+    
+    # Vérifier que l'annonce appartient au landlord
+    listing = await listing_ctrl.get_listing(db, listing_id)
+    if not listing or listing.owner_id != landlord.user_id:
+        raise HTTPException(status_code=403, detail="Listing does not belong to this landlord")
+    
+    # Récupérer l'étudiant
+    student = await student_ctrl.get_student_by_user(db, student_user_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Supprimer le like
+    await listing_ctrl.remove_listing_reaction(db, listing_id, student.id)
+    
+    # Créer une notification pour l'étudiant
+    landlord_user = await crud_user.get_user_by_id(db, landlord.user_id)
+    notification_data = NotificationCreate(
+        user_id=student_user_id,
+        type="like_rejected",
+        title="❌ Like refusé",
+        message=f"Malheureusement, {landlord_user.name} a refusé votre like pour l'annonce '{listing.title}' en raison d'une incompatibilité. Continuez à chercher, le logement parfait vous attend !",
+        listing_id=listing_id,
+        landlord_id=landlord.user_id
+    )
+    await notification_ctrl.create_notification(db, notification_data)
+    
+    return {"success": True, "message": "Like refusé et notification envoyée"}
