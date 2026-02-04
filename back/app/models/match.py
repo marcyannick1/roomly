@@ -18,3 +18,4 @@ class Match(Base):
     listing = relationship("Listing", foreign_keys=[listing_id])
     student = relationship("Student", foreign_keys=[student_id])
     messages = relationship("Message", back_populates="match", cascade="all, delete-orphan")
+    visits = relationship("Visit", back_populates="match", cascade="all, delete-orphan")

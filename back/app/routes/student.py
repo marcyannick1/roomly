@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.db.session import get_db
 from app.schemas.student import StudentCreate, StudentOut
 from app.schemas.listing import ListingOut
@@ -38,17 +39,26 @@ async def update_or_create_student_profile(student: StudentCreate, db: AsyncSess
         return await student_ctrl.create_student(db, student)
 
 @router.get("/{user_id}/feed", response_model=list[ListingOut])
-async def get_student_feed(user_id: int, db: AsyncSession = Depends(get_db)):
+async def get_student_feed(
+    user_id: int, 
+    skip: int = 0,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db)
+):
     """Récupérer le feed d'annonces pour un étudiant"""
-    # Récupérer le profil étudiant à partir du user_id
+    from sqlalchemy import select
+    from app.models.listing import Listing
+    
+    # Vérifier que l'étudiant existe
     student = await student_ctrl.get_student_by_user(db, user_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
     
-    # Récupérer toutes les annonces
-    all_listings = await listing_ctrl.get_all_listings(db)
+    # Récupérer toutes les annonces triées par ID descendant (plus récentes en premier)
+    query = select(Listing).options(selectinload(Listing.photos)).order_by(Listing.id.desc()).offset(skip).limit(limit)
     
-    return all_listings
+    result = await db.execute(query)
+    return result.scalars().all()
 
 @router.post("/{user_id}/like/{listing_id}")
 async def like_listing(user_id: int, listing_id: int, db: AsyncSession = Depends(get_db)):

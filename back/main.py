@@ -8,6 +8,7 @@ from app.routes import student
 from app.routes import landlord
 from app.routes import notification
 from app.routes import message
+from app.routes import visit
 # from app.routes import ai  # Temporairement désactivé - dépendances AI manquantes
 from app.routes import match
 
@@ -15,7 +16,7 @@ app = FastAPI(title="Roomly Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,5 +35,6 @@ app.include_router(listing_photo.router, prefix="/listing-photos", tags=["Listin
 app.include_router(match.router, prefix="/matches", tags=["Matches"])
 app.include_router(message.router, prefix="/conversations", tags=["Messages"])
 app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
+app.include_router(visit.router, prefix="/visits", tags=["Visits"])
 # app.include_router(ai.router, prefix="/ai", tags=["AI"])  # Temporairement désactivé
 

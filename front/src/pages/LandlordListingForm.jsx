@@ -110,10 +110,15 @@ export default function LandlordListingForm() {
     if (value.length > 2) {
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&limit=5`
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&limit=10&countrycodes=fr`
         );
         const data = await response.json();
-        setAddressSuggestions(data);
+        // Filtrer pour garder seulement les adresses en France
+        const frenchAddresses = data.filter(suggestion => 
+          suggestion.address?.country === 'France' || 
+          suggestion.address?.country_code === 'fr'
+        );
+        setAddressSuggestions(frenchAddresses);
       } catch (error) {
         console.error('Erreur autocomplete:', error);
       }
@@ -121,11 +126,24 @@ export default function LandlordListingForm() {
   };
 
   const selectAddress = (suggestion) => {
+    // Extraire la ville et le code postal de manière robuste
+    const city = suggestion.address?.city || 
+                 suggestion.address?.town || 
+                 suggestion.address?.village || 
+                 suggestion.address?.municipality || '';
+    const postalCode = suggestion.address?.postcode || '';
+    
+    // Pour le champ adresse, utiliser une version simplifiée (sans la ville et le code postal répétés)
+    const addressLine = suggestion.address?.road || 
+                       suggestion.address?.building || 
+                       suggestion.address?.street ||
+                       suggestion.display_name.split(',')[0] || '';
+    
     setFormData(prev => ({
       ...prev,
-      address: suggestion.display_name,
-      city: suggestion.address?.city || '',
-      postal_code: suggestion.address?.postcode || '',
+      address: addressLine,
+      city: city,
+      postal_code: postalCode,
     }));
     setAddressSuggestions([]);
   };

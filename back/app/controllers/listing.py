@@ -268,10 +268,14 @@ async def get_student_liked_listings(
 async def get_all_listings(
     db: AsyncSession,
     skip: int = 0,
-    limit: int = 20,
+    limit: int = 100,
 ) -> list[Listing]:
     result = await db.execute(
-        select(Listing).options(selectinload(Listing.photos)).offset(skip).limit(limit)
+        select(Listing)
+        .options(selectinload(Listing.photos))
+        .order_by(Listing.id.desc())  # Plus récentes en premier
+        .offset(skip)
+        .limit(limit)
     )
     return result.scalars().all()
 

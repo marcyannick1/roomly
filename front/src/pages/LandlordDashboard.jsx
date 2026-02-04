@@ -12,9 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches, deleteMatch, rejectStudentLike, getMatchMessages, sendMessage } from '@/lib/api';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches, deleteMatch, rejectStudentLike, getMatchMessages, sendMessage, getUserVisits } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle, X, Send, Sparkles, TrendingUp } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle, X, Send, Sparkles, TrendingUp, Calendar } from 'lucide-react';
+import { CalendarView } from '@/components/visits/CalendarView';
 import { motion, AnimatePresence } from 'framer-motion';
 import MatchAnimation from '@/components/MatchAnimation';
 
@@ -39,6 +40,7 @@ export default function LandlordDashboard() {
   const [messageText, setMessageText] = useState('');
   const [viewingProfile, setViewingProfile] = useState(null);
   const [viewingListing, setViewingListing] = useState(null);
+  const [visits, setVisits] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -58,7 +60,7 @@ export default function LandlordDashboard() {
         const response = await getCurrentUser();
         currentUser = response.data.user || response.data;
       }
-      
+
       const userId = currentUser?.id || currentUser?.user_id;
       if (userId) {
         try {
@@ -70,28 +72,28 @@ export default function LandlordDashboard() {
           console.error('Erreur lors du rechargement utilisateur:', error);
         }
       }
-      
+
       console.log('Current user in LandlordDashboard:', currentUser);
 
       const landlordId = currentUser?.id || location.state?.user?.id;
       if (landlordId) {
         const listingsResponse = await getLandlordListings(landlordId);
         setListings(listingsResponse.data);
-        
+
         try {
           const likesResponse = await getLandlordReceivedLikes(landlordId);
           setAllReceivedLikes(likesResponse.data);
         } catch (error) {
           console.log('Erreur chargement des likes:', error);
         }
-        
+
         try {
           const matchesResponse = await getLandlordMatches(landlordId);
           setAllMatches(matchesResponse.data);
         } catch (error) {
           console.log('Erreur chargement des matches:', error);
         }
-        
+
         try {
           const profileResponse = await getLandlordProfile(landlordId);
           const profile = profileResponse.data;
@@ -103,6 +105,13 @@ export default function LandlordDashboard() {
           });
         } catch (error) {
           console.log('No landlord profile found');
+        }
+
+        try {
+          const visitsResponse = await getUserVisits(landlordId);
+          setVisits(visitsResponse.data || []);
+        } catch (error) {
+          console.log('Erreur chargement des visites:', error);
         }
       }
     } catch (error) {
@@ -231,6 +240,7 @@ export default function LandlordDashboard() {
     { id: 'interested', icon: Flame, label: 'Intéressés', path: null },
     { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: null },
     { id: 'messages', icon: MessageCircle, label: 'Messages', path: null },
+    { id: 'visits', icon: Calendar, label: 'Planning', path: null },
     { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
     { id: 'profile', icon: User, label: 'Profil', path: null },
     { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
@@ -242,7 +252,7 @@ export default function LandlordDashboard() {
       <aside className="dashboard-sidebar w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50 border-r border-black/10">
         {/* Logo & User Profile */}
         <div className="p-6 border-b border-black/10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3 mb-6"
@@ -256,7 +266,7 @@ export default function LandlordDashboard() {
           </motion.div>
 
           {/* User Profile Card */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
@@ -266,9 +276,9 @@ export default function LandlordDashboard() {
             <div className="flex items-center gap-3 relative z-10">
               {user?.photo ? (
                 <div className="relative">
-                  <img 
-                    src={user.photo} 
-                    alt={user.name} 
+                  <img
+                    src={user.photo}
+                    alt={user.name}
                     className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-[#212220]"
                   />
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#fec629] shadow-sm" />
@@ -311,17 +321,18 @@ export default function LandlordDashboard() {
                       setView('matches');
                     } else if (item.id === 'messages') {
                       setView('messages');
+                    } else if (item.id === 'visits') {
+                      setView('visits');
                     } else if (item.id === 'profile') {
                       setView('profile');
                     } else if (item.id === 'settings') {
                       toast.error('Paramètres en cours de développement');
                     }
                   }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative ${
-                    isActive
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative ${isActive
                       ? 'bg-[#212220] text-[#fec629] shadow-lg scale-105'
                       : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
-                  }`}
+                    }`}
                   data-testid={`nav-${item.id}`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -336,7 +347,7 @@ export default function LandlordDashboard() {
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
-                  
+
                   {/* Effet de brillance au survol */}
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-5" />
                 </motion.button>
@@ -388,7 +399,7 @@ export default function LandlordDashboard() {
               </div>
 
               {listings.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-slate-200/50"
@@ -500,7 +511,7 @@ export default function LandlordDashboard() {
                             )}
                           </span>
                         </div>
-                        
+
                         <div className="flex gap-2">
                           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
                             <Button
@@ -525,7 +536,7 @@ export default function LandlordDashboard() {
                             </Button>
                           </motion.div>
                         </div>
-                        
+
                         <div className="flex gap-2">
                           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
                             <Button
@@ -580,15 +591,15 @@ export default function LandlordDashboard() {
                 const filteredLikes = allReceivedLikes
                   .filter(like => like.listing_id === selectedListing?.id)
                   .filter(like => {
-                    const isMatched = allMatches.some(match => 
-                      match.student_id === like.student_id && 
+                    const isMatched = allMatches.some(match =>
+                      match.student_id === like.student_id &&
                       match.listing_id === like.listing_id
                     );
                     return !isMatched;
                   });
-                
+
                 return filteredLikes.length === 0 ? (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-slate-200/50"
@@ -650,7 +661,7 @@ export default function LandlordDashboard() {
                                 Voir profil
                               </Button>
                             </motion.div>
-                            
+
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                               <Button
                                 size="sm"
@@ -661,7 +672,7 @@ export default function LandlordDashboard() {
                                 Refuser
                               </Button>
                             </motion.div>
-                            
+
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                               <Button
                                 size="sm"
@@ -699,7 +710,7 @@ export default function LandlordDashboard() {
               <p className="text-slate-500 mb-8">Vos connexions réussies avec les étudiants</p>
 
               {allMatches.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-slate-200/50"
@@ -727,7 +738,7 @@ export default function LandlordDashboard() {
                       return acc;
                     }, {})
                   ).map(([listingId, data], groupIndex) => (
-                    <motion.div 
+                    <motion.div
                       key={listingId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -812,7 +823,7 @@ export default function LandlordDashboard() {
                                     Matché 💚
                                   </span>
                                 </div>
-                                
+
                                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                   <Button
                                     variant="outline"
@@ -853,7 +864,7 @@ export default function LandlordDashboard() {
               <p className="text-slate-500 mb-8">Les étudiants qui ont aimé vos annonces</p>
 
               {allReceivedLikes.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-slate-200/50"
@@ -881,7 +892,7 @@ export default function LandlordDashboard() {
                       return acc;
                     }, {})
                   ).map(([listingId, data], groupIndex) => (
-                    <motion.div 
+                    <motion.div
                       key={listingId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -970,7 +981,7 @@ export default function LandlordDashboard() {
                                     Voir profil
                                   </Button>
                                 </motion.div>
-                                
+
                                 {like.match && like.match.exists ? (
                                   <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm border border-green-200 rounded-full px-4 py-2">
                                     <div className="flex -space-x-2">
@@ -1017,7 +1028,7 @@ export default function LandlordDashboard() {
                                         Refuser
                                       </Button>
                                     </motion.div>
-                                    
+
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                       <Button
                                         size="sm"
@@ -1058,7 +1069,7 @@ export default function LandlordDashboard() {
               <p className="text-slate-500 mb-8">Discutez avec vos matchs</p>
 
               {allMatches.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-slate-200/50"
@@ -1074,7 +1085,7 @@ export default function LandlordDashboard() {
               ) : selectedMatch ? (
                 <>
                   {viewingProfile ? (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-white rounded-3xl shadow-xl border border-slate-200/50 p-6"
@@ -1088,7 +1099,7 @@ export default function LandlordDashboard() {
                         </svg>
                         Retour à la conversation
                       </button>
-                      
+
                       <div className="flex flex-col items-center mb-6">
                         <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 mb-4 border-4 border-blue-200">
                           {viewingProfile.photo ? (
@@ -1102,7 +1113,7 @@ export default function LandlordDashboard() {
                         <h2 className="text-2xl font-bold text-slate-800">{viewingProfile.name}</h2>
                         <p className="text-slate-500">{viewingProfile.email}</p>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-200/50">
                           <h3 className="font-semibold text-slate-800 mb-2">Type de compte</h3>
@@ -1117,7 +1128,7 @@ export default function LandlordDashboard() {
                       </div>
                     </motion.div>
                   ) : viewingListing ? (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-white rounded-3xl shadow-xl border border-slate-200/50 p-6 max-h-[600px] overflow-y-auto"
@@ -1131,29 +1142,29 @@ export default function LandlordDashboard() {
                         </svg>
                         Retour à la conversation
                       </button>
-                      
+
                       {viewingListing.photos && viewingListing.photos.length > 0 && (
-                        <img 
-                          src={viewingListing.photos[0].url} 
+                        <img
+                          src={viewingListing.photos[0].url}
                           alt={viewingListing.title}
                           className="w-full h-64 object-cover rounded-2xl mb-4"
                         />
                       )}
-                      
+
                       <h2 className="text-2xl font-bold text-slate-800 mb-2">{viewingListing.title}</h2>
                       <p className="text-xl text-blue-600 font-bold mb-4">{viewingListing.price}€/mois</p>
-                      
+
                       <div className="space-y-3">
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-200/50">
                           <h3 className="font-semibold text-slate-800 mb-2">Description</h3>
                           <p className="text-slate-600">{viewingListing.description}</p>
                         </div>
-                        
+
                         <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-200/50">
                           <h3 className="font-semibold text-slate-800 mb-2">Adresse</h3>
                           <p className="text-slate-600">{viewingListing.address}</p>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-200/50">
                             <h3 className="font-semibold text-slate-800 mb-1 text-sm">Surface</h3>
@@ -1167,7 +1178,7 @@ export default function LandlordDashboard() {
                       </div>
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-white rounded-3xl shadow-xl border border-slate-200/50 flex flex-col h-[600px] overflow-hidden"
@@ -1182,7 +1193,7 @@ export default function LandlordDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                           </svg>
                         </button>
-                        
+
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <button
                             onClick={() => setViewingProfile(selectedMatch.student)}
@@ -1200,12 +1211,12 @@ export default function LandlordDashboard() {
                               </div>
                               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                             </div>
-                            
+
                             <div className="text-left">
                               <h3 className="font-semibold text-slate-800 text-sm truncate">{selectedMatch.student?.name || 'Étudiant'}</h3>
                             </div>
                           </button>
-                          
+
                           <button
                             onClick={() => setViewingListing(selectedMatch.listing)}
                             className="text-xs text-slate-500 truncate hover:text-blue-600 transition-colors text-left flex-1 min-w-0 bg-transparent"
@@ -1252,14 +1263,13 @@ export default function LandlordDashboard() {
                                     )
                                   )}
                                 </div>
-                                
+
                                 <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[70%]`}>
                                   <div
-                                    className={`px-4 py-2 rounded-2xl ${
-                                      isCurrentUser
+                                    className={`px-4 py-2 rounded-2xl ${isCurrentUser
                                         ? 'bg-[#fec629] text-[#212220] rounded-tr-sm shadow-md'
                                         : 'bg-white text-slate-800 border border-slate-200/50 rounded-tl-sm shadow-sm'
-                                    }`}
+                                      }`}
                                   >
                                     <p className="text-sm leading-relaxed">{msg.content}</p>
                                   </div>
@@ -1339,16 +1349,16 @@ export default function LandlordDashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className="flex justify-center mb-6"
               >
                 <div className="relative">
                   {user?.photo ? (
-                    <img 
-                      src={user.photo} 
-                      alt={user.name} 
+                    <img
+                      src={user.photo}
+                      alt={user.name}
                       className="w-32 h-32 rounded-full object-cover border-4 border-blue-200 shadow-2xl ring-4 ring-blue-500/20"
                     />
                   ) : (
@@ -1361,32 +1371,32 @@ export default function LandlordDashboard() {
                   </div>
                 </div>
               </motion.div>
-              
+
               {!isEditingProfile ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border border-blue-200/50"
                     >
                       <h3 className="text-sm font-semibold text-slate-600 mb-2">Nom</h3>
                       <p className="text-lg text-slate-800 font-medium">{user?.name || 'Non renseigné'}</p>
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border border-blue-200/50"
                     >
                       <h3 className="text-sm font-semibold text-slate-600 mb-2">Email</h3>
                       <p className="text-lg text-slate-800 font-medium">{user?.email || 'Non renseigné'}</p>
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border border-blue-200/50"
                     >
                       <h3 className="text-sm font-semibold text-slate-600 mb-2">Téléphone</h3>
                       <p className="text-lg text-slate-800 font-medium">{landlordProfile.phone || 'Non renseigné'}</p>
                     </motion.div>
-                    <motion.div 
+                    <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-5 border border-blue-200/50"
                     >
@@ -1498,7 +1508,7 @@ export default function LandlordDashboard() {
                   try {
                     await updateLandlordProfile(profileForm);
                     setLandlordProfile(profileForm);
-                    
+
                     if (profileForm.name !== user.name || profileForm.email !== user.email) {
                       const userId = user?.id ?? user?.user_id;
                       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/users/${userId}`, {
@@ -1517,7 +1527,7 @@ export default function LandlordDashboard() {
                         setUser(userResponse.data);
                       }
                     }
-                    
+
                     setIsEditingProfile(false);
                     toast.success('Profil mis à jour');
                   } catch (error) {
@@ -1594,6 +1604,27 @@ export default function LandlordDashboard() {
               )}
             </motion.div>
           )}
+
+          {view === 'visits' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="h-[calc(100vh-8rem)] overflow-y-auto"
+            >
+              <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-200/50">
+                <h2 className="text-4xl font-bold mb-8 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl">
+                    <Calendar className="w-8 h-8 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Mon Planning
+                  </span>
+                </h2>
+                <CalendarView visits={visits} />
+              </div>
+            </motion.div>
+          )}
+
         </div>
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1608,7 +1639,7 @@ export default function LandlordDashboard() {
                     <AlertDialogTitle className="text-2xl font-bold text-slate-800">Supprimer l'annonce ?</AlertDialogTitle>
                   </div>
                   <AlertDialogDescription className="text-base text-slate-600 leading-relaxed mt-4">
-                    Êtes-vous certain de vouloir supprimer l'annonce <span className="font-bold text-slate-800">"{listingToDelete?.title}"</span> ? 
+                    Êtes-vous certain de vouloir supprimer l'annonce <span className="font-bold text-slate-800">"{listingToDelete?.title}"</span> ?
                     <span className="block mt-2 text-red-600 font-medium">Cette action est irréversible et supprimera aussi toutes les photos associées.</span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>

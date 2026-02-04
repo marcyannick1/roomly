@@ -14,11 +14,11 @@ api.interceptors.request.use((config) => {
     .split('; ')
     .find(row => row.startsWith('session_token='))
     ?.split('=')[1];
-  
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
   return config;
 });
 
@@ -59,30 +59,30 @@ export const getLandlordListings = (landlordId) => {
 };
 export const updateListing = (listingId, listing) => {
   if (!listingId) throw new Error('Listing ID is required');
-  
+
   const formData = new FormData();
-  
+
   // Ajouter tous les champs simples
   formData.append('title', listing.title || '');
   formData.append('room_type', listing.type || 'studio');
   formData.append('price', listing.rent || 0);
   formData.append('city', listing.address?.city || '');
   formData.append('owner_id', listing.landlord_id || '');
-  
+
   // Champs optionnels texte
   formData.append('description', listing.description || '');
   formData.append('address', listing.address?.street || '');
   formData.append('postal_code', listing.address?.postal_code || '');
-  
+
   // Champs optionnels numériques
   formData.append('surface', listing.surface || 0);
   formData.append('deposit', listing.deposit || 0);
   formData.append('available_from', listing.available_from || '');
-  
+
   // Booléens
   formData.append('charges_included', listing.charges > 0 ? 'true' : 'false');
   formData.append('furnished', listing.furnished ? 'true' : 'false');
-  
+
   // Équipements
   formData.append('wifi', listing.wifi ? 'true' : 'false');
   formData.append('workspace', listing.workspace ? 'true' : 'false');
@@ -96,14 +96,14 @@ export const updateListing = (listingId, listing) => {
   formData.append('kitchen', listing.kitchen ? 'true' : 'false');
   formData.append('garden', listing.garden ? 'true' : 'false');
   formData.append('balcony', listing.balcony ? 'true' : 'false');
-  
+
   // Photos (si des fichiers File sont fournis)
   if (listing.photoFiles && listing.photoFiles.length > 0) {
     listing.photoFiles.forEach(file => {
       formData.append('photos', file);
     });
   }
-  
+
   return api.put(`/listings/${listingId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
@@ -114,7 +114,8 @@ export const deleteListing = (listingId) => {
 };
 
 // Matching
-export const getStudentFeed = (studentId) => api.get(`/students/${studentId}/feed`);
+export const getStudentFeed = (studentId, skip = 0, limit = 20) =>
+  api.get(`/students/${studentId}/feed?skip=${skip}&limit=${limit}`);
 export const likeListing = (studentId, listingId) => api.post(`/students/${studentId}/like/${listingId}`);
 export const unlikeListing = (studentId, listingId) => api.delete(`/students/${studentId}/reaction/${listingId}`);
 export const getStudentLikedListings = (studentId) => api.get(`/students/${studentId}/liked`);
@@ -124,6 +125,7 @@ export const createMatch = (landlordId, studentId, listingId) => api.post(`/land
 export const deleteMatch = (matchId) => api.delete(`/matches/${matchId}`);
 export const getStudentMatches = (userId) => api.get(`/matches/user/${userId}`);
 export const getLandlordMatches = (landlordId) => api.get(`/matches/landlord/${landlordId}`);
+export const getMatch = (matchId) => api.get(`/matches/${matchId}`);
 
 // Messages
 export const sendMessage = (matchId, message) => api.post(`/conversations/${matchId}/messages`, message);
@@ -136,6 +138,14 @@ export const getUnreadNotificationsCount = (userId) => api.get(`/notifications/u
 export const markNotificationAsRead = (notificationId) => api.put(`/notifications/${notificationId}/read`);
 export const markAllNotificationsAsRead = (userId) => api.put(`/notifications/user/${userId}/read-all`);
 export const rejectStudentLike = (landlordId, studentUserId, listingId) => api.delete(`/landlords/${landlordId}/reject-like/${studentUserId}/${listingId}`);
+
+// Visits
+export const createVisit = (userId, visitData) => api.post(`/visits?user_id=${userId}`, visitData);
+export const getUserVisits = (userId) => api.get(`/visits/user/${userId}`);
+export const getMatchVisits = (matchId) => api.get(`/visits/match/${matchId}`);
+export const acceptVisit = (visitId) => api.patch(`/visits/${visitId}/accept`);
+export const declineVisit = (visitId) => api.patch(`/visits/${visitId}/decline`);
+export const cancelVisit = (visitId) => api.delete(`/visits/${visitId}`);
 
 // Upload
 export const uploadFile = (file) => {
