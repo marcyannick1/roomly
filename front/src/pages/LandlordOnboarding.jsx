@@ -56,7 +56,7 @@ export default function LandlordOnboarding() {
       // Recharger l'utilisateur pour avoir les dernières données
       const { data } = await getCurrentUser();
       const updatedUser = data?.user || data;
-      navigate('/landlord/dashboard', { state: { user: updatedUser } });
+      navigate('/dashboard', { state: { user: updatedUser } });
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde');
     }

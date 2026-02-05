@@ -114,8 +114,22 @@ export default function Landing() {
             className="flex items-center gap-3"
             whileHover={{ scale: 1.05 }}
           >
-            <img src="/logo.svg" alt="Roomly" className="w-10 h-10" />
-            <span className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>Roomly</span>
+            <img src="/logo1.png" alt="Roomly" className="w-70 h-20" />
+            <span
+  className="text-[34px] font-bold"
+  style={{
+    fontFamily: 'Bevan, serif',
+    color: '#1F7A4A',
+    textShadow: `
+      2px 2px 0 #A6E3C2,
+      4px 4px 0 #0E4F2F
+    `,
+    letterSpacing: '0.04em'
+  }}
+>
+  ROOMLY
+</span>
+
           </motion.div>
           <div className="flex gap-3">
             <Link to="/login">

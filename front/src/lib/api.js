@@ -128,24 +128,57 @@ export const getLandlordMatches = (landlordId) => api.get(`/matches/landlord/${l
 export const getMatch = (matchId) => api.get(`/matches/${matchId}`);
 
 // Messages
-export const sendMessage = (matchId, message) => api.post(`/conversations/${matchId}/messages`, message);
+export const getConversations = (userId, role = 'student') => {
+  if (!userId) throw new Error('User ID is required');
+  return role === 'landlord'
+    ? api.get(`/matches/landlord/${userId}`)
+    : api.get(`/matches/user/${userId}`);
+};
+export const getMessages = (matchId) => api.get(`/conversations/${matchId}/messages`);
+export const sendMessage = (matchId, arg2, arg3) => {
+  let content = '';
+
+  if (arg3 !== undefined) {
+    content = arg3;
+  } else if (typeof arg2 === 'string') {
+    content = arg2;
+  } else if (arg2 && typeof arg2 === 'object' && 'content' in arg2) {
+    content = arg2.content;
+  }
+
+  return api.post(`/conversations/${matchId}/messages`, { content });
+};
 export const getMatchMessages = (matchId) => api.get(`/conversations/${matchId}/messages`);
 export const markMessagesAsRead = (matchId) => api.put(`/conversations/${matchId}/read`);
 
 // Notifications
-export const getUserNotifications = (userId, unreadOnly = false) => api.get(`/notifications/user/${userId}`, { params: { unread_only: unreadOnly } });
+export const getNotifications = (userId, unreadOnly = false) =>
+  api.get(`/notifications/user/${userId}`, { params: { unread_only: unreadOnly } });
+export const getUserNotifications = (userId, unreadOnly = false) =>
+  api.get(`/notifications/user/${userId}`, { params: { unread_only: unreadOnly } });
 export const getUnreadNotificationsCount = (userId) => api.get(`/notifications/user/${userId}/unread-count`);
 export const markNotificationAsRead = (notificationId) => api.put(`/notifications/${notificationId}/read`);
 export const markAllNotificationsAsRead = (userId) => api.put(`/notifications/user/${userId}/read-all`);
+export const deleteNotification = (notificationId) => api.delete(`/notifications/${notificationId}`);
 export const rejectStudentLike = (landlordId, studentUserId, listingId) => api.delete(`/landlords/${landlordId}/reject-like/${studentUserId}/${listingId}`);
 
 // Visits
 export const createVisit = (userId, visitData) => api.post(`/visits?user_id=${userId}`, visitData);
 export const getUserVisits = (userId) => api.get(`/visits/user/${userId}`);
+export const getStudentVisits = (userId) => api.get(`/visits/user/${userId}`);
 export const getMatchVisits = (matchId) => api.get(`/visits/match/${matchId}`);
 export const acceptVisit = (visitId) => api.patch(`/visits/${visitId}/accept`);
 export const declineVisit = (visitId, reason) => api.patch(`/visits/${visitId}/decline`, { reason });
 export const cancelVisit = (visitId) => api.delete(`/visits/${visitId}`);
+
+// Profile (compat)
+export const updateUserProfile = (userId, data = {}) => {
+  const name = data.name || `${data.first_name || ''} ${data.last_name || ''}`.trim();
+  return api.patch(`/users/${userId}`, {
+    name: name || undefined,
+    email: data.email || undefined,
+  });
+};
 
 // Upload
 export const uploadFile = (file) => {

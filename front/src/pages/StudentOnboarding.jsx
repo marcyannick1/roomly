@@ -92,7 +92,7 @@ export default function StudentOnboarding() {
       
       await updateStudentProfile(studentData);
       toast.success('Profil complété !');
-      navigate('/student/dashboard', { state: { user } });
+      navigate('/dashboard', { state: { user } });
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Erreur lors de la sauvegarde');

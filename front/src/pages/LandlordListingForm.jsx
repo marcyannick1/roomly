@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { createListing, getCurrentUser } from '@/lib/api';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Home, Eye, LogOut, User, Flame, Settings, Plus, MapPin, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MapPin, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Liste des équipements disponibles
@@ -255,7 +255,7 @@ export default function LandlordListingForm() {
       await api.post('/listings/', formDataToSend);
       
       toast.success('Annonce créée avec succès !');
-      navigate('/landlord/dashboard');
+      navigate('/dashboard/listings');
     } catch (error) {
       console.error('AXIOS ERROR:', error.response?.data);
       toast.error('Erreur lors de la création de l\'annonce');
@@ -264,99 +264,26 @@ export default function LandlordListingForm() {
     }
   };
 
-  const navItems = [
-    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-    { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
-    { id: 'create', icon: Plus, label: 'Créer une annonce', path: null },
-    { id: 'profile', icon: User, label: 'Profil', path: null },
-    { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
-  ];
-
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50">
-        <div className="p-6 border-b border-black/10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-2">
-              <img src="/logo.svg" alt="Roomly" className="w-full h-full" />
-            </div>
-            <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
-          </div>
-
-          <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[#212220] truncate">{user?.name}</p>
-                <p className="text-xs text-[#212220]/70 truncate">{user?.email}</p>
-              </div>
-            </div>
-          </div>
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-[#212220] mb-4" style={{ fontFamily: 'Outfit' }}>
+          Créer une annonce
+        </h1>
+        <div className="flex gap-2">
+          {[1, 2, 3, 4].map((s) => (
+            <div
+              key={s}
+              className={`h-2 flex-1 rounded-full transition-all ${
+                s <= step ? 'bg-[#fec629]' : 'bg-gray-300'
+              }`}
+            />
+          ))}
         </div>
+        <p className="text-gray-600 mt-2">Étape {step} sur 4</p>
+      </div>
 
-        <nav className="flex-1 py-4 px-3">
-          <div className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.id === 'create';
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.path) navigate(item.path);
-                    else if (item.id === 'profile' && user?.id) navigate(`/profile/${user.id}`);
-                  }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#212220] text-[#fec629] shadow-lg'
-                      : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="p-4 border-t border-black/10">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/5 hover:bg-black/10 text-[#212220]/70 hover:text-[#212220] transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 ml-72 bg-gray-50">
-        <div className="max-w-2xl mx-auto px-6 py-8">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-[#212220] mb-2" style={{ fontFamily: 'Outfit' }}>
-              Créer une annonce
-            </h1>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4].map((s) => (
-                <div
-                  key={s}
-                  className={`h-2 flex-1 rounded-full transition-all ${
-                    s <= step ? 'bg-[#fec629]' : 'bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className="text-gray-600 mt-2">Étape {step} sur 4</p>
-          </div>
-
-          <form className="space-y-6">
-            {/* Étape 1: Informations de base */}
+      <form className="space-y-6">{/* Étape 1: Informations de base */}
             {step === 1 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 bg-white p-8 rounded-3xl shadow-lg border-2 border-gray-100">
                 <h2 className="text-2xl font-bold text-[#212220] mb-6" style={{ fontFamily: 'Outfit' }}>
@@ -685,8 +612,6 @@ export default function LandlordListingForm() {
               )}
             </div>
           </form>
-        </div>
-      </main>
     </div>
   );
 }

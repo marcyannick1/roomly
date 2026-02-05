@@ -36,3 +36,12 @@ async def mark_all_as_read(user_id: int, db: AsyncSession = Depends(get_db)):
     """Marquer toutes les notifications comme lues"""
     success = await notification_ctrl.mark_all_notifications_as_read(db, user_id)
     return {"success": success}
+
+@router.delete("/{notification_id}")
+async def delete_notification(
+    notification_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Supprimer une notification"""
+    success = await notification_ctrl.delete_notification(db, notification_id)
+    return {"success": success}

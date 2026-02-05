@@ -1,0 +1,290 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, CheckCircle2, X, Mail, Phone, Home, MapPin, User } from 'lucide-react';
+import { getLandlordMatches, getCurrentUser, createMatch } from '@/lib/api';
+import { toast } from 'sonner';
+import { EmptyState } from '@/components/dashboard/EmptyState';
+import { ContentCard } from '@/components/dashboard/ContentCard';
+
+export default function StudentsPage() {
+  const [user, setUser] = useState(null);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all'); // all, pending, accepted
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const userResponse = await getCurrentUser();
+      const currentUser = userResponse.data?.user || userResponse.data;
+      setUser(currentUser);
+
+      const userId = currentUser?.id ?? currentUser?.user_id;
+      const matchesResponse = await getLandlordMatches(userId);
+      setMatches(matchesResponse.data || []);
+    } catch (error) {
+      console.error('Erreur chargement matchs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-16 h-16 border-4 border-[#fec629] border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  const filteredMatches = matches.filter(match => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return match.status === 'pending';
+    if (filter === 'accepted') return match.status === 'accepted';
+    return true;
+  });
+
+  return (
+    <div className="w-full space-y-6">
+      <div>
+        <h1 className="text-4xl font-bold text-[#212220] mb-2" style={{ fontFamily: 'Outfit' }}>
+          Étudiants Intéressés
+        </h1>
+        <p className="text-gray-600">
+          Gérez les demandes et communiquez avec les étudiants
+        </p>
+      </div>
+
+      {/* Filtres */}
+      <div className="flex gap-3">
+        <FilterButton
+          active={filter === 'all'}
+          onClick={() => setFilter('all')}
+          label="Tous"
+          count={matches.length}
+        />
+        <FilterButton
+          active={filter === 'pending'}
+          onClick={() => setFilter('pending')}
+          label="En attente"
+          count={matches.filter(m => m.status === 'pending').length}
+        />
+        <FilterButton
+          active={filter === 'accepted'}
+          onClick={() => setFilter('accepted')}
+          label="Acceptés"
+          count={matches.filter(m => m.status === 'accepted').length}
+        />
+      </div>
+
+      {!filteredMatches || filteredMatches.length === 0 ? (
+        <div className="flex items-center justify-center h-96">
+          <EmptyState
+            icon={Users}
+            title="Aucun étudiant"
+            description={
+              filter === 'all'
+                ? "Aucun étudiant n'a encore manifesté d'intérêt"
+                : `Aucun étudiant ${filter === 'pending' ? 'en attente' : 'accepté'}`
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredMatches.map((match, index) => (
+              <StudentCard
+                key={match.id}
+                match={match}
+                index={index}
+                onUpdate={loadData}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterButton({ active, onClick, label, count }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`px-6 py-3 rounded-full font-semibold transition-all ${
+        active
+          ? 'bg-gradient-to-r from-[#fec629] to-[#f5b519] text-[#212220] shadow-lg'
+          : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-[#fec629]'
+      }`}
+    >
+      {label} {count !== undefined && `(${count})`}
+    </motion.button>
+  );
+}
+
+function StudentCard({ match, index, onUpdate }) {
+  const student = match.student || {};
+  const listing = match.listing || {};
+  const isPending = match.status === 'pending';
+
+  // Calculer le nom complet et les initiales
+  const fullName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Étudiant';
+  const initials = student.name 
+    ? student.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : `${student.first_name?.[0] || 'E'}${student.last_name?.[0] || 'T'}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: index * 0.05 }}
+      className={`bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all border-2 ${
+        isPending ? 'border-[#fec629]' : 'border-gray-100'
+      }`}
+    >
+      <div className="flex gap-6 p-6">
+        {/* Photo étudiant */}
+        <div className="flex-shrink-0">
+          <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-[#fec629] to-[#f5b519] flex items-center justify-center overflow-hidden relative shadow-xl">
+            {student.photo ? (
+              <img
+                src={student.photo}
+                alt={fullName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-4xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>
+                {initials}
+              </span>
+            )}
+          </div>
+          {isPending && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="mt-3 bg-gradient-to-r from-yellow-100 to-yellow-50 text-yellow-800 px-4 py-2 rounded-full text-xs font-bold text-center shadow-md"
+            >
+              🆕 Nouveau
+            </motion.div>
+          )}
+        </div>
+
+        {/* Infos étudiant */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className="text-2xl font-bold text-[#212220] mb-1" style={{ fontFamily: 'Outfit' }}>
+                {fullName}
+              </h3>
+              {student.school && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <User className="w-4 h-4 text-[#fec629]" />
+                  <span className="font-medium">{student.school}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            {student.email && (
+              <div className="flex items-center gap-2 text-gray-700">
+                <Mail className="w-4 h-4 text-[#fec629]" />
+                <a href={`mailto:${student.email}`} className="hover:text-[#fec629] transition-colors text-sm">
+                  {student.email}
+                </a>
+              </div>
+            )}
+            {student.phone && (
+              <div className="flex items-center gap-2 text-gray-700">
+                <Phone className="w-4 h-4 text-[#fec629]" />
+                <a href={`tel:${student.phone}`} className="hover:text-[#fec629] transition-colors text-sm">
+                  {student.phone}
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Logement concerné */}
+          <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <Home className="w-4 h-4" />
+              Logement concerné
+            </h4>
+            <div className="flex items-center gap-3">
+              {listing.photos?.[0]?.url && (
+                <img
+                  src={listing.photos[0].url}
+                  alt={listing.title}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-[#212220] truncate">
+                  {listing.title || 'Logement'}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-3 h-3" />
+                  <span className="truncate">{listing.city || 'Ville'}</span>
+                </div>
+              </div>
+              <div className="text-lg font-bold text-[#fec629]">
+                {listing.price || listing.rent || 0}€
+              </div>
+            </div>
+          </div>
+
+          {/* Boutons d'action */}
+          {isPending && (
+            <div className="flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  toast.success('✅ Match accepté !');
+                  onUpdate();
+                }}
+                className="flex-1 bg-gradient-to-r from-[#fec629] to-[#f5b519] text-[#212220] px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:shadow-xl transition-all"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                Accepter
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  toast.success('Match refusé');
+                  onUpdate();
+                }}
+                className="flex-1 bg-white border-2 border-gray-300 text-gray-900 px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 hover:border-[#212220] transition-all"
+              >
+                <X className="w-5 h-5" />
+                Refuser
+              </motion.button>
+            </div>
+          )}
+
+          {match.status === 'accepted' && (
+            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-3 flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <span className="text-green-800 font-semibold">
+                Match accepté - Vous pouvez maintenant communiquer
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}

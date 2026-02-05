@@ -25,12 +25,8 @@ export default function Login() {
       
       toast.success('Connexion réussie !');
       
-      // Redirect based on user type
-      if (user.user_type === 'student') {
-        navigate('/student/dashboard', { state: { user } });
-      } else {
-        navigate('/landlord/dashboard', { state: { user } });
-      }
+      // Redirect to new unified dashboard
+      navigate('/dashboard', { state: { user } });
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erreur de connexion');
     } finally {
@@ -40,7 +36,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/student/dashboard';
+    const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 

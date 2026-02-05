@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createListing, getListing, updateListing, getCurrentUser } from '@/lib/api';
 import { toast } from 'sonner';
-import { ArrowLeft, ImagePlus, X, Home, Eye, LogOut, User, Flame, Settings, Plus } from 'lucide-react';
+import { ArrowLeft, ImagePlus, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ListingForm() {
@@ -119,14 +119,6 @@ export default function ListingForm() {
     }
   };
 
-  const navItems = [
-    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-    { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
-    { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
-    { id: 'profile', icon: User, label: 'Profil', path: null },
-    { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
-  ];
-
   const handlePhotosChange = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -163,107 +155,22 @@ export default function ListingForm() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar w-72 bg-[#fec629] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50">
-        {/* Logo & User Profile */}
-        <div className="p-6 border-b border-black/10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-2">
-              <img src="/logo.svg" alt="Roomly" className="w-full h-full" />
-            </div>
-            <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
-          </div>
+    <div className="w-full max-w-3xl mx-auto">
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/dashboard/listings')}
+        data-testid="back-to-dashboard"
+        className="mb-6 rounded-full"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Retour
+      </Button>
 
-          <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-[#212220] truncate">{user?.name || 'Utilisateur'}</p>
-                <p className="text-xs text-[#212220]/70 truncate">{user?.email || ''}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <h1 className="text-4xl font-bold text-foreground mb-8" style={{ fontFamily: 'Outfit' }}>
+        {listingId ? 'Modifier l\'annonce' : 'Créer une annonce'}
+      </h1>
 
-        <nav className="flex-1 py-4 px-3">
-          <div className="space-y-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.id === 'create';
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.path) {
-                      navigate(item.path);
-                    } else if (item.id === 'profile' && user?.id) {
-                      navigate(`/profile/${user.id}`);
-                    } else if (item.id === 'students') {
-                      navigate('/landlord/dashboard');
-                    } else if (item.id === 'settings') {
-                      toast.info('Paramètres en cours de développement');
-                    }
-                  }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${
-                    isActive
-                      ? 'bg-[#212220] text-[#fec629] shadow-lg'
-                      : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
-                  }`}
-                  data-testid={`nav-${item.id}`}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'}`} />
-                  <span className="font-medium">{item.label}</span>
-
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavListingForm"
-                      className="absolute inset-0 bg-[#212220] rounded-xl -z-10"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="p-4 border-t border-black/10">
-          <button
-            onClick={() => {
-              document.cookie = 'session_token=; path=/; max-age=0';
-              navigate('/');
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-black/5 hover:bg-black/10 text-[#212220]/70 hover:text-[#212220] transition-all duration-200"
-            data-testid="logout-btn"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Déconnexion</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 ml-72 bg-white">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/landlord/dashboard')}
-          data-testid="back-to-dashboard"
-          className="mb-6 rounded-full"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
-
-        <h1 className="text-4xl font-bold text-foreground mb-8" style={{ fontFamily: 'Outfit' }}>
-          {listingId ? 'Modifier l\'annonce' : 'Créer une annonce'}
-        </h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-card rounded-3xl p-8 shadow-lg border border-border/50 space-y-6">
             <div>
               <Label>Titre de l'annonce</Label>
@@ -445,9 +352,7 @@ export default function ListingForm() {
               {loading ? 'Sauvegarde...' : listingId ? 'Mettre à jour' : 'Créer l\'annonce'}
             </Button>
           </div>
-        </form>
-      </div>
-      </main>
+      </form>
     </div>
   );
 }

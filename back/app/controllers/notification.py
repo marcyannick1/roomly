@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from app.models.notification import Notification
 from app.schemas.notification import NotificationCreate
 from typing import List
@@ -53,3 +53,11 @@ async def get_unread_count(db: AsyncSession, user_id: int) -> int:
         .where(Notification.is_read == False)
     )
     return len(result.scalars().all())
+
+async def delete_notification(db: AsyncSession, notification_id: int) -> bool:
+    """Supprimer une notification"""
+    result = await db.execute(
+        delete(Notification).where(Notification.id == notification_id)
+    )
+    await db.commit()
+    return result.rowcount > 0
