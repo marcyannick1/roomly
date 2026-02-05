@@ -7,9 +7,21 @@ import { acceptVisit, declineVisit, cancelVisit } from '@/lib/api';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Modal, Select } from 'antd';
 
 export function VisitBubble({ visit, user, onUpdate, isProposer = false }) {
     const [loading, setLoading] = useState(false);
+    const [declineOpen, setDeclineOpen] = useState(false);
+    const [declineReason, setDeclineReason] = useState('Le créneau ne me convient pas');
+
+    const declineReasons = [
+        'Le créneau ne me convient pas',
+        'Je ne suis plus disponible à cette date',
+        'Le logement ne correspond plus à ma recherche',
+        'Le logement a déjà été attribué',
+        'Je préfère une autre date',
+        'Autre raison',
+    ];
 
     const handleAction = async (action) => {
         try {
@@ -17,13 +29,25 @@ export function VisitBubble({ visit, user, onUpdate, isProposer = false }) {
             if (action === 'accept') {
                 await acceptVisit(visit.id);
                 toast.success("✅ Visite acceptée !");
-            } else if (action === 'decline') {
-                await declineVisit(visit.id);
-                toast.success("❌ Visite refusée");
             } else if (action === 'cancel') {
                 await cancelVisit(visit.id);
                 toast.success("🗑️ Visite annulée");
             }
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            console.error(error);
+            toast.error("Une erreur est survenue");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeclineConfirm = async () => {
+        try {
+            setLoading(true);
+            await declineVisit(visit.id, declineReason);
+            toast.success("❌ Visite refusée");
+            setDeclineOpen(false);
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error(error);
@@ -146,7 +170,7 @@ export function VisitBubble({ visit, user, onUpdate, isProposer = false }) {
                                     size="sm"
                                     variant="outline"
                                     className="flex-1 text-red-600 hover:bg-red-50 border-red-300"
-                                    onClick={() => handleAction('decline')}
+                                    onClick={() => setDeclineOpen(true)}
                                     disabled={loading}
                                 >
                                     {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -165,6 +189,28 @@ export function VisitBubble({ visit, user, onUpdate, isProposer = false }) {
                     </div>
                 )}
             </div>
+
+            <Modal
+                title="Refuser la visite"
+                open={declineOpen}
+                onCancel={() => setDeclineOpen(false)}
+                onOk={handleDeclineConfirm}
+                okText="Confirmer le refus"
+                cancelText="Annuler"
+                okButtonProps={{ danger: true, loading }}
+                cancelButtonProps={{ disabled: loading }}
+            >
+                <p className="text-gray-600 mb-4">Merci de sélectionner une raison pour le refus.</p>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Raison du refus</label>
+                    <Select
+                        className="w-full"
+                        value={declineReason}
+                        onChange={(value) => setDeclineReason(value)}
+                        options={declineReasons.map((reason) => ({ label: reason, value: reason }))}
+                    />
+                </div>
+            </Modal>
         </motion.div>
     );
 }

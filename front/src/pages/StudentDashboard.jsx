@@ -1553,62 +1553,80 @@ function NotificationsView({ notifications, unreadCount, onMarkAsRead, onMarkAll
       )}
 
       <div className="space-y-3">
-        {notifications.map((notification, index) => (
-          <motion.div
-            key={notification.id}
-            className={`rounded-xl p-6 border-2 transition-all ${notification.is_read
-                ? 'bg-white border-gray-200'
-                : 'bg-gradient-to-r from-[#fef9e7] to-white border-[#fec629] shadow-lg'
-              }`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ x: 5 }}
-          >
-            <div className="flex gap-4 items-start">
-              <motion.div
-                className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${notification.type === 'match_created'
-                    ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                    : 'bg-gradient-to-r from-red-400 to-pink-500'
-                  }`}
-                whileHover={{ scale: 1.1, rotate: 10 }}
-              >
-                {notification.type === 'match_created' ? (
-                  <MessageCircle className="w-6 h-6 text-white" />
-                ) : (
-                  <X className="w-6 h-6 text-white" />
-                )}
-              </motion.div>
+        {notifications.map((notification, index) => {
+          // Déterminer l'icône et la couleur selon le type
+          let iconComponent = MessageCircle;
+          let gradientClass = 'from-green-400 to-emerald-500';
+          
+          if (notification.type === 'match_created') {
+            iconComponent = MessageCircle;
+            gradientClass = 'from-green-400 to-emerald-500';
+          } else if (notification.type === 'match_rejected') {
+            iconComponent = X;
+            gradientClass = 'from-red-400 to-pink-500';
+          } else if (notification.type === 'visit_proposed') {
+            iconComponent = Calendar;
+            gradientClass = 'from-purple-400 to-indigo-500';
+          } else if (notification.type === 'visit_declined') {
+            iconComponent = X;
+            gradientClass = 'from-red-500 to-rose-500';
+          } else if (notification.type === 'visit_accepted') {
+            iconComponent = Calendar;
+            gradientClass = 'from-blue-400 to-cyan-500';
+          }
+          
+          const IconComponent = iconComponent;
+          
+          return (
+            <motion.div
+              key={notification.id}
+              className={`rounded-xl p-6 border-2 transition-all ${notification.is_read
+                  ? 'bg-white border-gray-200'
+                  : 'bg-gradient-to-r from-[#fef9e7] to-white border-[#fec629] shadow-lg'
+                }`}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ x: 5 }}
+            >
+              <div className="flex gap-4 items-start">
+                <motion.div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-r ${gradientClass}`}
+                  whileHover={{ scale: 1.1, rotate: 10 }}
+                >
+                  <IconComponent className="w-6 h-6 text-white" />
+                </motion.div>
 
-              <div className="flex-1">
-                <h3 className="font-bold text-lg mb-2">{notification.title}</h3>
-                <p className="text-gray-700 mb-3">{notification.message}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {new Date(notification.created_at).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                  {!notification.is_read && (
-                    <motion.button
-                      onClick={() => onMarkAsRead(notification.id)}
-                      className="px-3 py-1 border-2 border-[#fec629] text-[#fff] hover:bg-[#fec629] hover:text-[#212220] rounded-full text-xs font-medium transition-all"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Marquer comme lu
-                    </motion.button>
-                  )}
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">{notification.title}</h3>
+                  <p className="text-gray-700 mb-3 whitespace-pre-line">{notification.message}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    {!notification.is_read && (
+                      <motion.button
+                        onClick={() => onMarkAsRead(notification.id)}
+                        className="px-3 py-1 border-2 border-[#fec629] text-[#fff] hover:bg-[#fec629] hover:text-[#212220] rounded-full text-xs font-medium transition-all"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Marquer comme lu
+                      </motion.button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1855,7 +1873,7 @@ function ConversationView({ match, messages, messageText, setMessageText, user, 
                   key={visit.id}
                   visit={visit}
                   user={user}
-                  isProposer={visit.student_id === user?.id || visit.student_id === user?.user_id}
+                  isProposer={visit.proposed_by === user?.id || visit.proposed_by === user?.user_id}
                   onUpdate={() => {
                     onVisitCreated?.();
                   }}

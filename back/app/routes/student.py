@@ -8,6 +8,8 @@ from app.schemas.listing import ListingOut
 from app.controllers import student as student_ctrl
 from app.controllers import user as crud_user
 from app.controllers import listing as listing_ctrl
+from app.controllers import notification as notification_ctrl
+from app.schemas.notification import NotificationCreate
 
 router = APIRouter(tags=["Students"])
 
@@ -70,6 +72,22 @@ async def like_listing(user_id: int, listing_id: int, db: AsyncSession = Depends
     db_listing = await listing_ctrl.set_listing_reaction(db, listing_id, student.id, is_like=True)
     if not db_listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+
+    try:
+        student_user = await crud_user.get_user_by_id(db, user_id)
+        if db_listing.owner_id:
+            notification_data = NotificationCreate(
+                user_id=db_listing.owner_id,
+                type="listing_liked",
+                title="❤️ Nouvelle marque d'intérêt",
+                message=f"{student_user.name if student_user else 'Un étudiant'} a liké votre annonce '{db_listing.title}'.",
+                listing_id=listing_id,
+                landlord_id=db_listing.owner_id
+            )
+            await notification_ctrl.create_notification(db, notification_data)
+    except Exception:
+        pass
+
     return db_listing
 
 @router.post("/{user_id}/dislike/{listing_id}")

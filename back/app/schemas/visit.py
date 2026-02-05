@@ -23,3 +23,7 @@ class VisitOut(BaseModel):
 class VisitUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
+
+
+class VisitDecline(BaseModel):
+    reason: Optional[str] = None

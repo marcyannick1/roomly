@@ -12,10 +12,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches, deleteMatch, rejectStudentLike, getMatchMessages, sendMessage, getUserVisits } from '@/lib/api';
+import { getCurrentUser, getLandlordListings, getInterestedStudents, createMatch, deleteListing, getUserById, getLandlordProfile, updateLandlordProfile, uploadProfilePhoto, deleteProfilePhoto, deleteUserAccount, getLandlordReceivedLikes, getLandlordMatches, deleteMatch, rejectStudentLike, getMatchMessages, sendMessage, getUserVisits, getUserNotifications, getUnreadNotificationsCount, markNotificationAsRead, markAllNotificationsAsRead, getMatchVisits } from '@/lib/api';
 import { toast } from 'sonner';
-import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle, X, Send, Sparkles, TrendingUp, Calendar } from 'lucide-react';
+import { Home, Plus, LogOut, User, Eye, Flame, Settings, Pencil, Trash2, Heart, CheckCircle2, XCircle, MessageCircle, X, Send, Sparkles, TrendingUp, Calendar, Bell, Clock } from 'lucide-react';
 import { CalendarView } from '@/components/visits/CalendarView';
+import { VisitModal } from '@/components/visits/VisitModal';
+import { VisitBubble } from '@/components/visits/VisitBubble';
 import { motion, AnimatePresence } from 'framer-motion';
 import MatchAnimation from '@/components/MatchAnimation';
 
@@ -41,6 +43,10 @@ export default function LandlordDashboard() {
   const [viewingProfile, setViewingProfile] = useState(null);
   const [viewingListing, setViewingListing] = useState(null);
   const [visits, setVisits] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [matchVisits, setMatchVisits] = useState([]);
+  const [visitModalOpen, setVisitModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -113,9 +119,47 @@ export default function LandlordDashboard() {
         } catch (error) {
           console.log('Erreur chargement des visites:', error);
         }
+
+        try {
+          const notificationsResponse = await getUserNotifications(landlordId);
+          setNotifications(notificationsResponse.data || []);
+          const unreadResponse = await getUnreadNotificationsCount(landlordId);
+          setUnreadCount(unreadResponse.data?.count || 0);
+        } catch (error) {
+          console.log('Erreur chargement des notifications:', error);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      const userId = user?.id || user?.user_id;
+      if (userId) {
+        const notificationsResponse = await getUserNotifications(userId);
+        setNotifications(notificationsResponse.data || []);
+        const unreadResponse = await getUnreadNotificationsCount(userId);
+        setUnreadCount(unreadResponse.data?.count || 0);
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour de la notification');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const userId = user?.id || user?.user_id;
+      if (!userId) return;
+      await markAllNotificationsAsRead(userId);
+      const notificationsResponse = await getUserNotifications(userId);
+      setNotifications(notificationsResponse.data || []);
+      setUnreadCount(0);
+      toast.success('Toutes les notifications ont été marquées comme lues');
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour des notifications');
     }
   };
 
@@ -225,9 +269,19 @@ export default function LandlordDashboard() {
     }
   };
 
+  const loadMatchVisits = async (matchId) => {
+    try {
+      const response = await getMatchVisits(matchId);
+      setMatchVisits(response.data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des visites:', error);
+    }
+  };
+
   const selectMatch = (match) => {
     setSelectedMatch(match);
     loadMessages(match);
+    loadMatchVisits(match.id);
   };
 
   const handleLogout = () => {
@@ -241,6 +295,7 @@ export default function LandlordDashboard() {
     { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: null },
     { id: 'messages', icon: MessageCircle, label: 'Messages', path: null },
     { id: 'visits', icon: Calendar, label: 'Planning', path: null },
+    { id: 'notifications', icon: Bell, label: 'Notifications', path: null, badge: unreadCount },
     { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
     { id: 'profile', icon: User, label: 'Profil', path: null },
     { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
@@ -323,6 +378,8 @@ export default function LandlordDashboard() {
                       setView('messages');
                     } else if (item.id === 'visits') {
                       setView('visits');
+                    } else if (item.id === 'notifications') {
+                      setView('notifications');
                     } else if (item.id === 'profile') {
                       setView('profile');
                     } else if (item.id === 'settings') {
@@ -339,6 +396,11 @@ export default function LandlordDashboard() {
                 >
                   <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'} transition-colors duration-300`} />
                   <span className="font-medium">{item.label}</span>
+                  {item.badge > 0 && (
+                    <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-semibold ${isActive ? 'bg-[#fec629] text-[#212220]' : 'bg-[#212220] text-[#fec629]'}`}>
+                      {item.badge}
+                    </span>
+                  )}
 
                   {isActive && (
                     <motion.div
@@ -1224,7 +1286,37 @@ export default function LandlordDashboard() {
                             {selectedMatch.listing.title}
                           </button>
                         </div>
+
+                        {/* Visit Button */}
+                        <Button
+                          onClick={() => setVisitModalOpen(true)}
+                          className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-gray-900 font-semibold whitespace-nowrap"
+                          size="sm"
+                        >
+                          📅 Planifier
+                        </Button>
                       </div>
+
+                      {/* Visits Section */}
+                      {matchVisits.length > 0 && (
+                        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                          <h4 className="text-xs font-semibold text-gray-600 mb-2">Visites proposées</h4>
+                          <div className="space-y-2 max-h-[120px] overflow-y-auto">
+                            {matchVisits.map((visit) => (
+                              <VisitBubble
+                                key={visit.id}
+                                visit={visit}
+                                user={user}
+                                isProposer={visit.proposed_by === user?.id || visit.proposed_by === user?.user_id}
+                                onUpdate={() => {
+                                  loadMatchVisits(selectedMatch.id);
+                                  loadData();
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Messages */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-br from-slate-50 to-white">
@@ -1620,7 +1712,33 @@ export default function LandlordDashboard() {
                     Mon Planning
                   </span>
                 </h2>
-                <CalendarView visits={visits} />
+                <CalendarView user={user} onUpdate={loadData} />
+              </div>
+            </motion.div>
+          )}
+
+          {view === 'notifications' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="h-[calc(100vh-8rem)] overflow-y-auto"
+            >
+              <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-200/50">
+                <h2 className="text-4xl font-bold mb-8 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl">
+                    <Bell className="w-8 h-8 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
+                  </span>
+                </h2>
+
+                <NotificationsView
+                  notifications={notifications}
+                  unreadCount={unreadCount}
+                  onMarkAsRead={handleMarkAsRead}
+                  onMarkAllAsRead={handleMarkAllAsRead}
+                />
               </div>
             </motion.div>
           )}
@@ -1665,7 +1783,132 @@ export default function LandlordDashboard() {
           show={showMatchAnimation}
           onComplete={() => setShowMatchAnimation(false)}
         />
+
+        <VisitModal
+          open={visitModalOpen}
+          onOpenChange={setVisitModalOpen}
+          matchId={selectedMatch?.id}
+          user={user}
+          onVisitCreated={() => {
+            setVisitModalOpen(false);
+            loadMatchVisits(selectedMatch?.id);
+            loadData();
+          }}
+        />
       </main>
+    </div>
+  );
+}
+
+function NotificationsView({ notifications, unreadCount, onMarkAsRead, onMarkAllAsRead }) {
+  if (!notifications || notifications.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        <p className="text-slate-600">Aucune notification pour le moment</p>
+      </div>
+    );
+  }
+
+  const getNotificationStyle = (type) => {
+    switch (type) {
+      case 'listing_liked':
+        return {
+          icon: Heart,
+          gradient: 'from-pink-500 to-rose-500',
+        };
+      case 'visit_proposed':
+        return {
+          icon: Calendar,
+          gradient: 'from-blue-500 to-indigo-500',
+        };
+      case 'visit_declined':
+        return {
+          icon: X,
+          gradient: 'from-red-500 to-rose-500',
+        };
+      case 'visit_accepted':
+        return {
+          icon: Calendar,
+          gradient: 'from-green-500 to-emerald-500',
+        };
+      default:
+        return {
+          icon: Bell,
+          gradient: 'from-slate-500 to-slate-600',
+        };
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {unreadCount > 0 && (
+        <div className="flex justify-end">
+          <motion.button
+            onClick={onMarkAllAsRead}
+            className="px-4 py-2 border-2 border-[#fec629] text-[#fff] hover:bg-[#fec629] hover:text-[#212220] rounded-full text-sm font-medium transition-all"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Tout marquer comme lu
+          </motion.button>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {notifications.map((notification, index) => {
+          const { icon: Icon, gradient } = getNotificationStyle(notification.type);
+          return (
+            <motion.div
+              key={notification.id}
+              className={`rounded-xl p-6 border-2 transition-all ${notification.is_read
+                  ? 'bg-white border-gray-200'
+                  : 'bg-gradient-to-r from-[#fef9e7] to-white border-[#fec629] shadow-lg'
+                }`}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ x: 5 }}
+            >
+              <div className="flex gap-4 items-start">
+                <motion.div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-r ${gradient}`}
+                  whileHover={{ scale: 1.1, rotate: 10 }}
+                >
+                  <Icon className="w-6 h-6 text-white" />
+                </motion.div>
+
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg mb-2">{notification.title}</h3>
+                  <p className="text-gray-700 mb-3 whitespace-pre-line">{notification.message}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(notification.created_at).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    {!notification.is_read && (
+                      <motion.button
+                        onClick={() => onMarkAsRead(notification.id)}
+                        className="px-3 py-1 border-2 border-[#fec629] text-[#fff] hover:bg-[#fec629] hover:text-[#212220] rounded-full text-xs font-medium transition-all"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Marquer comme lu
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }

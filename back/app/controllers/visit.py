@@ -2,14 +2,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.visit import Visit
 from app.schemas.visit import VisitCreate
-from datetime import datetime
+from datetime import datetime, timezone
 
 async def create_visit(db: AsyncSession, visit_data: VisitCreate, proposed_by: int):
     """Créer une nouvelle proposition de visite"""
+    proposed_date = visit_data.proposed_date
+    if proposed_date.tzinfo is not None:
+        proposed_date = proposed_date.astimezone(timezone.utc).replace(tzinfo=None)
     db_visit = Visit(
         match_id=visit_data.match_id,
         proposed_by=proposed_by,
-        proposed_date=visit_data.proposed_date,
+        proposed_date=proposed_date,
         notes=visit_data.notes,
         status="pending"
     )
@@ -26,16 +29,18 @@ async def get_visit_by_id(db: AsyncSession, visit_id: int):
 async def get_visits_by_user(db: AsyncSession, user_id: int):
     """Récupérer toutes les visites d'un utilisateur (étudiant ou bailleur)"""
     from app.models.match import Match
+    from app.models.student import Student
     from sqlalchemy.orm import selectinload
     
     # Récupérer les visites où l'utilisateur est soit le proposant, soit impliqué dans le match
     result = await db.execute(
         select(Visit)
         .join(Match, Visit.match_id == Match.id)
+        .join(Student, Match.student_id == Student.id)
         .where(
             (Visit.proposed_by == user_id) | 
             (Match.landlord_id == user_id) |
-            (Match.student_id == user_id)
+            (Student.user_id == user_id)
         )
         .options(selectinload(Visit.match))
         .order_by(Visit.proposed_date.desc())

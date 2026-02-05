@@ -1,80 +1,50 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Clock, Loader2, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Modal, Form, DatePicker, TimePicker, Input, Button, Alert, Space } from 'antd';
+import { CalendarOutlined, ClockCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+import locale from 'antd/locale/fr_FR';
 import { createVisit } from '@/lib/api';
 import { toast } from 'sonner';
 
-const formSchema = z.object({
-    proposed_date: z.date({
-        required_error: "La date est requise",
-    }),
-    notes: z.string().optional(),
-});
+dayjs.locale('fr');
+
+const { TextArea } = Input;
 
 // Generate time slots from 9h to 20h
-const TIME_SLOTS = [];
-for (let hour = 9; hour <= 20; hour++) {
-    TIME_SLOTS.push(`${hour.toString().padStart(2, '0')}:00`);
-    if (hour < 20) {
-        TIME_SLOTS.push(`${hour.toString().padStart(2, '0')}:30`);
+const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 9; hour <= 20; hour++) {
+        slots.push(dayjs().hour(hour).minute(0));
+        if (hour < 20) {
+            slots.push(dayjs().hour(hour).minute(30));
+        }
     }
-}
+    return slots;
+};
 
 export function VisitModal({ open, onOpenChange, matchId, user, onVisitCreated }) {
+    const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
-    const [selectedTime, setSelectedTime] = useState('14:00');
 
-    const form = useForm({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            notes: '',
-        },
-    });
-
-    const onSubmit = async (values) => {
+    const handleSubmit = async (values) => {
         try {
+            if (!matchId) {
+                toast.error('❌ Match introuvable. Ouvre une conversation valide avant de proposer une visite.');
+                return;
+            }
+            const userId = user?.id || user?.user_id;
+            if (!userId) {
+                toast.error('❌ Utilisateur introuvable.');
+                return;
+            }
             setLoading(true);
 
             // Combine date and time
-            const [hours, minutes] = selectedTime.split(':');
-            const proposedDate = new Date(values.proposed_date);
-            proposedDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            const proposedDate = dayjs(values.date)
+                .hour(values.time.hour())
+                .minute(values.time.minute())
+                .second(0);
 
             const visitData = {
                 match_id: matchId,
@@ -82,147 +52,135 @@ export function VisitModal({ open, onOpenChange, matchId, user, onVisitCreated }
                 notes: values.notes || null,
             };
 
-            await createVisit(user.id || user.user_id, visitData);
+            await createVisit(userId, visitData);
 
             toast.success('✅ Proposition de visite envoyée !');
+            form.resetFields();
             onOpenChange(false);
-            form.reset();
-            setSelectedTime('14:00');
             if (onVisitCreated) onVisitCreated();
         } catch (error) {
+            const apiMessage = error?.response?.data?.detail;
             console.error('Error creating visit:', error);
-            toast.error("❌ Erreur lors de la création de la visite");
+            toast.error(apiMessage ? `❌ ${apiMessage}` : '❌ Erreur lors de la création de la visite');
         } finally {
             setLoading(false);
         }
     };
 
+    const disabledDate = (current) => {
+        // Disable dates before today
+        return current && current < dayjs().startOf('day');
+    };
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[450px]">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">📅 Planifier une visite</DialogTitle>
-                    <DialogDescription>
-                        Proposez une date et une heure pour visiter le logement.
-                    </DialogDescription>
-                </DialogHeader>
+        <Modal
+            title={
+                <Space>
+                    <CalendarOutlined style={{ color: '#faad14' }} />
+                    <span style={{ fontSize: '20px', fontWeight: 'bold' }}>Planifier une visite</span>
+                </Space>
+            }
+            open={open}
+            onCancel={() => onOpenChange(false)}
+            footer={null}
+            width={550}
+            centered
+        >
+            <p style={{ color: '#666', marginBottom: '24px' }}>
+                Proposez une date et une heure pour visiter le logement.
+            </p>
 
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        {/* Date Field */}
-                        <FormField
-                            control={form.control}
-                            name="proposed_date"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel className="text-base font-semibold">Date</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full pl-4 text-left font-normal py-6 border-2 hover:border-yellow-400",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-3 h-5 w-5 text-yellow-500" />
-                                                    {field.value ? (
-                                                        <span className="font-semibold">
-                                                            {format(field.value, "EEEE d MMMM yyyy", { locale: fr })}
-                                                        </span>
-                                                    ) : (
-                                                        <span>Choisir une date</span>
-                                                    )}
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                disabled={(date) => date < new Date() || date.getTime() < new Date().setHours(0, 0, 0, 0)}
-                                                initialFocus
-                                                locale={fr}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                initialValues={{
+                    time: dayjs().hour(14).minute(0),
+                }}
+            >
+                <Form.Item
+                    label={<span style={{ fontSize: '16px', fontWeight: '600' }}>📅 Date de visite</span>}
+                    name="date"
+                    rules={[{ required: true, message: 'Veuillez sélectionner une date' }]}
+                >
+                    <DatePicker
+                        style={{ width: '100%', height: '48px' }}
+                        size="large"
+                        format="dddd D MMMM YYYY"
+                        placeholder="Choisir une date"
+                        disabledDate={disabledDate}
+                        locale={locale}
+                    />
+                </Form.Item>
 
-                        {/* Time Field */}
-                        <FormItem>
-                            <FormLabel className="text-base font-semibold">Heure</FormLabel>
-                            <Select value={selectedTime} onValueChange={setSelectedTime}>
-                                <FormControl>
-                                    <SelectTrigger className="py-6 border-2 hover:border-yellow-400">
-                                        <Clock className="mr-3 h-5 w-5 text-yellow-500" />
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="max-h-[200px]">
-                                    {TIME_SLOTS.map((time) => (
-                                        <SelectItem key={time} value={time}>
-                                            {time}h
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </FormItem>
+                <Form.Item
+                    label={<span style={{ fontSize: '16px', fontWeight: '600' }}>🕐 Heure de visite</span>}
+                    name="time"
+                    rules={[{ required: true, message: 'Veuillez sélectionner une heure' }]}
+                >
+                    <TimePicker
+                        style={{ width: '100%', height: '48px' }}
+                        size="large"
+                        format="HH:mm"
+                        minuteStep={30}
+                        placeholder="Choisir une heure"
+                        hideDisabledOptions
+                        disabledTime={() => ({
+                            disabledHours: () => {
+                                const hours = [];
+                                for (let i = 0; i < 9; i++) hours.push(i);
+                                for (let i = 21; i < 24; i++) hours.push(i);
+                                return hours;
+                            }
+                        })}
+                    />
+                </Form.Item>
 
-                        {/* Notes Field */}
-                        <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-base font-semibold">Message (optionnel)</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Ex: Je serais en retard de 10 min, merci de m'attendre..."
-                                            className="resize-none min-h-24 border-2 focus:ring-yellow-400"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                <Form.Item
+                    label={<span style={{ fontSize: '16px', fontWeight: '600' }}>💬 Message (optionnel)</span>}
+                    name="notes"
+                >
+                    <TextArea
+                        rows={4}
+                        placeholder="Ex: Je serais en retard de 10 min, merci de m'attendre..."
+                        style={{ fontSize: '14px' }}
+                    />
+                </Form.Item>
 
-                        {/* Info Box */}
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-                            <div className="flex gap-3">
-                                <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                                <p className="text-sm text-blue-700">
-                                    Le bailleur recevra votre proposition et pourra l'accepter ou la refuser.
-                                </p>
-                            </div>
-                        </div>
+                <Alert
+                    title="Information"
+                    description="Le bailleur recevra votre proposition et pourra l'accepter ou la refuser."
+                    type="info"
+                    showIcon
+                    icon={<InfoCircleOutlined />}
+                    style={{ marginBottom: '24px' }}
+                />
 
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                                disabled={loading}
-                            >
-                                Annuler
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={loading}
-                                className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-gray-900 font-semibold"
-                            >
-                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Proposer la visite
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                <Form.Item style={{ marginBottom: 0 }}>
+                    <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                        <Button
+                            size="large"
+                            onClick={() => onOpenChange(false)}
+                            disabled={loading}
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            type="primary"
+                            size="large"
+                            htmlType="submit"
+                            loading={loading}
+                            style={{
+                                background: 'linear-gradient(to right, #fadb14, #faad14)',
+                                borderColor: '#faad14',
+                                fontWeight: '600',
+                            }}
+                        >
+                            Proposer la visite
+                        </Button>
+                    </Space>
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 }

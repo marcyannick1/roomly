@@ -144,7 +144,7 @@ export const createVisit = (userId, visitData) => api.post(`/visits?user_id=${us
 export const getUserVisits = (userId) => api.get(`/visits/user/${userId}`);
 export const getMatchVisits = (matchId) => api.get(`/visits/match/${matchId}`);
 export const acceptVisit = (visitId) => api.patch(`/visits/${visitId}/accept`);
-export const declineVisit = (visitId) => api.patch(`/visits/${visitId}/decline`);
+export const declineVisit = (visitId, reason) => api.patch(`/visits/${visitId}/decline`, { reason });
 export const cancelVisit = (visitId) => api.delete(`/visits/${visitId}`);
 
 // Upload
