@@ -16,4 +16,3 @@ faker
 sentence-transformers
 numpy
 psycopg2-binary
-apache-airflow
