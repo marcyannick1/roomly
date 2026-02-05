@@ -53,6 +53,30 @@ Documentation interactive de l'API :
 - Swagger UI : `http://localhost:8000/docs`
 - ReDoc : `http://localhost:8000/redoc`
 
+## Migrations avec Alembic
+
+### Créer une nouvelle migration
+Après avoir modifié les modèles SQLAlchemy :
+```bash
+alembic revision --autogenerate -m "description de la migration"
+```
+
+### Appliquer les migrations
+```bash
+alembic upgrade head
+```
+
+### Revenir en arrière
+```bash
+alembic downgrade -1  # Annuler la dernière migration
+alembic downgrade <revision_id>  # Revenir à une révision spécifique
+```
+
+### Voir l'historique des migrations
+```bash
+alembic history
+alembic current  # Voir la révision actuelle
+```
 
 ## Structure du projet
 
