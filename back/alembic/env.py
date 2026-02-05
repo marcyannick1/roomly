@@ -43,6 +43,10 @@ from app.models.listing import Listing
 from app.models.listing_photo import ListingPhoto
 from app.models.student import Student
 from app.models.landlord import Landlord
+from app.models.like import Like
+from app.models.match import Match
+from app.models.message import Message
+from app.models.notification import Notification
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
