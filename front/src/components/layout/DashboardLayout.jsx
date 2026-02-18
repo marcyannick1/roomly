@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { DashboardNavbar } from './DashboardNavbar';
+import { TopNavbar } from './TopNavbar';
 import { motion } from 'framer-motion';
 import { getCurrentUser } from '@/lib/api';
 
@@ -93,8 +94,11 @@ export function DashboardLayout() {
       {/* Navbar */}
       <DashboardNavbar user={user} onLogout={handleLogout} />
 
+      {/* Top Navbar */}
+      <TopNavbar user={user} />
+
       {/* Main content */}
-      <main className="flex-1 ml-72 min-h-screen p-8 relative z-10">
+      <main className="flex-1 ml-72 mt-16 min-h-screen p-8 relative z-10">
         <Outlet />
       </main>
     </div>

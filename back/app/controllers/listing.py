@@ -1,6 +1,6 @@
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import Optional
 from datetime import date
@@ -133,7 +133,12 @@ async def get_listings_by_owner(
     owner_id: int,
 ) -> list[Listing]:
     result = await db.execute(
-        select(Listing).where(Listing.owner_id == owner_id).options(selectinload(Listing.photos))
+        select(Listing)
+        .where(Listing.owner_id == owner_id)
+        .options(
+            selectinload(Listing.photos),
+            selectinload(Listing.likes)
+        )
     )
     return result.scalars().all()
 

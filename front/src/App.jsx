@@ -30,72 +30,60 @@ import ProfilePage from "@/pages/dashboard/ProfilePage";
 import ListingsPage from "@/pages/dashboard/ListingsPage";
 import StudentsPage from "@/pages/dashboard/StudentsPage";
 
-function AppRouter() {
-  const location = useLocation();
-  
-  // Check URL fragment for session_id during render (prevents race conditions)
-  if (location.hash?.includes('session_id=')) {
-    return <AuthCallback />;
-  }
-  
-  return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/role-selection" element={<RoleSelection />} />
-      
-      {/* Protected Routes */}
-      <Route path="/student/onboarding" element={
-        <ProtectedRoute><StudentOnboarding /></ProtectedRoute>
-      } />
-      <Route path="/landlord/onboarding" element={
-        <ProtectedRoute><LandlordOnboarding /></ProtectedRoute>
-      } />
-
-      {/* New modular dashboard routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute><DashboardLayout /></ProtectedRoute>
-      }>
-        {/* Student routes */}
-        <Route path="feed" element={<FeedPage />} />
-        <Route path="liked" element={<LikedPage />} />
-        
-        {/* Landlord routes */}
-        <Route path="listings" element={<ListingsPage />} />
-        <Route path="students" element={<StudentsPage />} />
-        <Route path="listing/new" element={<LandlordListingForm />} />
-        <Route path="listing/edit/:listingId" element={<ListingForm />} />
-        
-        {/* Common routes */}
-        <Route path="matches" element={<MatchesPage />} />
-        <Route path="messages" element={<MessagesPage />} />
-        <Route path="visits" element={<VisitsPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
-
-      {/* Legacy routes - TODO: migrate or remove */}
-      <Route path="/listing/:listingId" element={
-        <ProtectedRoute><ListingDetail /></ProtectedRoute>
-      } />
-      <Route path="/profile/:userId" element={
-        <ProtectedRoute><UserProfile /></ProtectedRoute>
-      } />
-      <Route path="/messages/:matchId" element={
-        <ProtectedRoute><Messages /></ProtectedRoute>
-      } />
-      
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  );
-}
-
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <AppRouter />
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/role-selection" element={<RoleSelection />} />
+          
+          {/* Protected Routes */}
+          <Route path="/student/onboarding" element={
+            <ProtectedRoute><StudentOnboarding /></ProtectedRoute>
+          } />
+          <Route path="/landlord/onboarding" element={
+            <ProtectedRoute><LandlordOnboarding /></ProtectedRoute>
+          } />
+
+          {/* New modular dashboard routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute><DashboardLayout /></ProtectedRoute>
+          }>
+            {/* Student routes */}
+            <Route path="feed" element={<FeedPage />} />
+            <Route path="liked" element={<LikedPage />} />
+            
+            {/* Landlord routes */}
+            <Route path="listings" element={<ListingsPage />} />
+            <Route path="students" element={<StudentsPage />} />
+            <Route path="listing/new" element={<LandlordListingForm />} />
+            <Route path="listing/edit/:listingId" element={<ListingForm />} />
+            
+            {/* Common routes */}
+            <Route path="matches" element={<MatchesPage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="visits" element={<VisitsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Legacy routes - TODO: migrate or remove */}
+          <Route path="/listing/:listingId" element={
+            <ProtectedRoute><ListingDetail /></ProtectedRoute>
+          } />
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute><UserProfile /></ProtectedRoute>
+          } />
+          <Route path="/messages/:matchId" element={
+            <ProtectedRoute><Messages /></ProtectedRoute>
+          } />
+          
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
         <Toaster />
       </BrowserRouter>
     </div>

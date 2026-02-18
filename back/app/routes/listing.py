@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, Form, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, Form, File, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import date
@@ -94,6 +94,48 @@ async def create_listing(
         garden=garden,
         balcony=balcony,
         photos=photos,
+    )
+
+
+@router.post("/json", response_model=ListingOut, status_code=status.HTTP_201_CREATED)
+async def create_listing_json(
+    listing: ListingCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create listing from JSON payload (for frontend compatibility)"""
+    return await listing_controller.create_listing(
+        db=db,
+        title=listing.title,
+        room_type=listing.room_type,
+        price=listing.price,
+        city=listing.city,
+        owner_id=listing.owner_id,
+        description=listing.description,
+        address=listing.address,
+        postal_code=listing.postal_code,
+        surface=listing.surface,
+        deposit=listing.deposit,
+        floor=listing.floor,
+        total_floors=listing.total_floors,
+        min_duration_months=listing.min_duration_months,
+        latitude=listing.latitude,
+        longitude=listing.longitude,
+        available_from=listing.available_from,
+        charges_included=listing.charges_included,
+        furnished=listing.furnished,
+        wifi=listing.wifi,
+        workspace=listing.workspace,
+        parking=listing.parking,
+        pets=listing.pets,
+        tv=listing.tv,
+        elevator=listing.elevator,
+        washing_machine=listing.washing_machine,
+        dryer=listing.dryer,
+        ac=listing.ac,
+        kitchen=listing.kitchen,
+        garden=listing.garden,
+        balcony=listing.balcony,
+        photos=[],
     )
 
 

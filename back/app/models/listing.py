@@ -51,3 +51,10 @@ class Listing(Base):
     # Relations
     photos = relationship("ListingPhoto", back_populates="listing", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="listing", cascade="all, delete-orphan")
+
+    @property
+    def likes_count(self) -> int:
+        """Compte le nombre de likes positifs pour cette annonce"""
+        if not self.likes:
+            return 0
+        return sum(1 for like in self.likes if like.is_like is True)

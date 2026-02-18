@@ -142,7 +142,32 @@ export default function FeedPage() {
   return (
     <>
       <MatchAnimation show={showMatchAnimation} onComplete={() => setShowMatchAnimation(false)} />
-      <div className="w-full max-w-md flex flex-col items-center justify-center gap-8">
+      
+      {/* Background simple et épuré */}
+      <div className="fixed inset-0 bg-white -z-10" />
+      
+      <div className="w-full max-w-md flex flex-col items-center justify-center gap-6 relative">
+        {/* Header minimaliste avec compteur */}
+        {filteredListings.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
+          >
+            <div className="bg-white rounded-xl px-5 py-3 shadow-sm border border-gray-200 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400 font-medium">Découverte</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {currentIndex + 1} / {filteredListings.length}
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                <Home className="w-5 h-5 text-gray-600" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
       {currentListing ? (
         <>
           <SwipeCard
@@ -153,32 +178,37 @@ export default function FeedPage() {
           />
 
           <motion.div
-            className="flex justify-center gap-6 w-full"
+            className="flex justify-center gap-4 w-full"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <ActionButton
-              icon={X}
+            <motion.button
               onClick={handlePass}
-              color="gray"
-              size="md"
-            />
+              className="w-14 h-14 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center hover:border-gray-300 transition-colors shadow-sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </motion.button>
 
-            <ActionButton
-              icon={Info}
+            <motion.button
               onClick={() => setShowDetails(true)}
-              color="blue"
-              size="md"
-            />
+              className="w-14 h-14 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center hover:border-gray-300 transition-colors shadow-sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Info className="w-6 h-6 text-gray-600" />
+            </motion.button>
 
-            <ActionButton
-              icon={Heart}
+            <motion.button
               onClick={handleLike}
-              color="primary"
-              size="lg"
-              filled
-            />
+              className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center hover:bg-gray-800 transition-colors shadow-lg"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Heart className="w-7 h-7 text-white fill-white" />
+            </motion.button>
           </motion.div>
         </>
       ) : (
@@ -217,24 +247,24 @@ function SwipeCard({ listing, onLike, onPass }) {
       whileHover={{ scale: 1.02 }}
     >
       <motion.div
-        className="absolute top-8 left-8 z-20 bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-xl rotate-[-20deg] border-4 border-white shadow-2xl"
+        className="absolute top-8 left-8 z-20 bg-green-500 text-white px-8 py-4 rounded-2xl font-bold text-2xl rotate-[-20deg] border-4 border-white shadow-2xl"
         style={{
           opacity: useTransform(x, [0, 100], [0, 1])
         }}
       >
-        LIKE
+        ❤️ J'ADORE
       </motion.div>
 
       <motion.div
-        className="absolute top-8 right-8 z-20 bg-red-500 text-white px-6 py-3 rounded-2xl font-bold text-xl rotate-[20deg] border-4 border-white shadow-2xl"
+        className="absolute top-8 right-8 z-20 bg-red-500 text-white px-8 py-4 rounded-2xl font-bold text-2xl rotate-[20deg] border-4 border-white shadow-2xl"
         style={{
           opacity: useTransform(x, [-100, 0], [1, 0])
         }}
       >
-        NOPE
+        ❌ PASSER
       </motion.div>
 
-      <div className="w-full bg-white rounded-3xl overflow-hidden shadow-2xl border-2 border-gray-100 relative">
+      <div className="w-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 relative">
         <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden group">
           {listing.photos?.[0]?.url ? (
             <>
@@ -246,74 +276,90 @@ function SwipeCard({ listing, onLike, onPass }) {
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-              <Home className="w-24 h-24 text-gray-300" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+              <Home className="w-24 h-24 text-primary/40" />
             </div>
           )}
 
+          {/* Badge Match amélioré */}
           <motion.div
-            className="absolute top-4 right-4 bg-gradient-to-r from-[#fec629] to-[#f5b519] text-[#212220] px-5 py-2.5 rounded-full font-bold text-sm shadow-xl flex items-center gap-2 border-2 border-white/50"
+            className="absolute top-6 right-6 bg-gradient-to-br from-primary via-primary to-yellow-500 text-primary-foreground px-6 py-3 rounded-2xl font-bold text-base shadow-2xl flex items-center gap-2 border-2 border-white/80"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.3, type: "spring" }}
-            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+            whileHover={{ scale: 1.15, rotate: 5 }}
           >
-            <Sparkles className="w-4 h-4" />
-            {listing.compatibility_score || 85}% Match
+            <Sparkles className="w-5 h-5" />
+            <span className="text-lg">{listing.compatibility_score || 85}%</span>
           </motion.div>
 
+          {/* Tags en bas améliorés */}
           <motion.div
-            className="absolute bottom-4 left-4 flex gap-2"
+            className="absolute bottom-6 left-6 right-6 flex gap-2 flex-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
             {listing.room_type && (
-              <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-[#212220] capitalize">
-                {listing.room_type}
-              </div>
+              <motion.div
+                className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-foreground capitalize shadow-lg"
+                whileHover={{ scale: 1.1 }}
+              >
+                {listing.room_type === 'studio' && '🏠'} {listing.room_type}
+              </motion.div>
             )}
             {listing.surface && (
-              <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-[#212220]">
-                {listing.surface}m²
-              </div>
+              <motion.div
+                className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-foreground shadow-lg"
+                whileHover={{ scale: 1.1 }}
+              >
+                📐 {listing.surface}m²
+              </motion.div>
+            )}
+            {listing.furnished !== undefined && (
+              <motion.div
+                className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-foreground shadow-lg"
+                whileHover={{ scale: 1.1 }}
+              >
+                {listing.furnished ? '🛋️ Meublé' : '📦 Non meublé'}
+              </motion.div>
             )}
           </motion.div>
         </div>
 
         <motion.div
-          className="p-6"
+          className="p-6 bg-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h2 className="text-2xl font-bold text-[#212220] mb-3 line-clamp-1" style={{ fontFamily: 'Outfit' }}>
+          <h2 className="text-2xl font-bold text-foreground mb-3 line-clamp-1" style={{ fontFamily: 'Outfit' }}>
             {listing.title || 'Sans titre'}
           </h2>
 
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-4">
             <motion.div
-              className="bg-gradient-to-r from-[#212220] to-[#3a3b39] text-white px-5 py-2.5 rounded-full font-bold text-lg shadow-lg"
-              whileHover={{ scale: 1.05 }}
+              className="bg-gradient-to-r from-primary to-yellow-500 text-primary-foreground px-6 py-3 rounded-2xl font-bold text-xl shadow-lg"
+              whileHover={{ scale: 1.05, rotate: -2 }}
             >
               {listing.price || listing.rent || 0}€
             </motion.div>
-            <span className="text-gray-600 font-medium">
-              {listing.charges_included ? 'charges comprises' : `+ ${listing.charges || 0}€`}
+            <span className="text-muted-foreground font-medium">
+              {listing.charges_included ? '✅ charges comprises' : `+ ${listing.charges || 0}€ /mois`}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 text-gray-600 mb-4">
-            <MapPin className="w-4 h-4" />
-            <span className="font-medium">
+          <div className="flex items-center gap-2 text-muted-foreground mb-4">
+            <MapPin className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground">
               {listing.city || listing.address?.city || 'Ville'}
             </span>
           </div>
 
-          <p className="text-gray-700 leading-relaxed line-clamp-2">
+          <p className="text-muted-foreground leading-relaxed line-clamp-3">
             {listing.description || 'Aucune description disponible.'}
           </p>
         </motion.div>
@@ -322,44 +368,49 @@ function SwipeCard({ listing, onLike, onPass }) {
   );
 }
 
-function ActionButton({ icon: Icon, onClick, color, size = 'md', filled = false }) {
+function ActionButton({ icon: Icon, onClick, color, size = 'md', filled = false, label }) {
   const sizeClasses = {
     md: 'w-16 h-16',
     lg: 'w-20 h-20'
   };
 
   const colorClasses = {
-    gray: 'border-gray-300 hover:border-[#212220] bg-white',
-    blue: 'border-blue-300 hover:border-blue-500 bg-white',
+    gray: 'border-border hover:border-foreground bg-card/90 backdrop-blur-xl',
+    blue: 'border-blue-300 hover:border-blue-500 bg-card/90 backdrop-blur-xl',
     primary: filled
-      ? 'bg-gradient-to-r from-[#fec629] to-[#f5b519] border-[#fec629] hover:shadow-2xl'
-      : 'border-[#fec629] hover:border-[#f5b519] bg-white'
+      ? 'bg-gradient-to-br from-primary via-primary to-yellow-500 border-primary/50 hover:shadow-2xl'
+      : 'border-primary hover:border-yellow-500 bg-card/90 backdrop-blur-xl'
   };
 
   const iconClasses = {
-    gray: 'text-[#212220]',
+    gray: 'text-foreground',
     blue: 'text-blue-600',
-    primary: filled ? 'text-[#212220]' : 'text-[#fec629]'
+    primary: filled ? 'text-primary-foreground' : 'text-primary'
   };
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.15, y: -5 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className={`${sizeClasses[size]} rounded-full border-4 ${colorClasses[color]} flex items-center justify-center shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group`}
-    >
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-        animate={{ x: [-200, 200] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      />
-      <Icon
-        className={`${size === 'lg' ? 'w-10 h-10' : 'w-8 h-8'} ${iconClasses[color]} relative z-10`}
-        fill={filled ? 'currentColor' : 'none'}
-        strokeWidth={filled ? 0 : 2.5}
-      />
-    </motion.button>
+    <div className="flex flex-col items-center gap-2">
+      <motion.button
+        whileHover={{ scale: 1.15, y: -5 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClick}
+        className={`${sizeClasses[size]} rounded-full border-4 ${colorClasses[color]} flex items-center justify-center shadow-xl hover:shadow-2xl transition-all relative overflow-hidden group`}
+      >
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          animate={{ x: [-200, 200] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+        <Icon
+          className={`${size === 'lg' ? 'w-10 h-10' : 'w-8 h-8'} ${iconClasses[color]} relative z-10`}
+          fill={filled ? 'currentColor' : 'none'}
+          strokeWidth={filled ? 0 : 2.5}
+        />
+      </motion.button>
+      {label && (
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      )}
+    </div>
   );
 }
 
@@ -367,120 +418,156 @@ function DetailsView({ listing, onBack, onLike, onPass }) {
   return (
     <motion.div
       key="details"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className="w-full max-w-3xl mx-auto space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     >
-      <motion.button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-[#212220] font-medium transition-colors group"
-        whileHover={{ x: -5 }}
-      >
-        <X className="w-5 h-5 rotate-180 group-hover:animate-pulse" />
-        Retour
-      </motion.button>
-
       <motion.div
-        className="bg-white rounded-3xl overflow-hidden shadow-2xl border-2 border-gray-100"
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-card/95 backdrop-blur-xl rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-border/50 relative"
+        onClick={e => e.stopPropagation()}
       >
-        <div className="relative h-96 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden group">
-          {listing.photos?.[0] ? (
+        {/* Header Image */}
+        <div className="relative h-80 rounded-t-3xl overflow-hidden">
+          {listing.photos?.[0]?.url ? (
             <>
               <motion.img
-                src={listing.photos[0]}
+                src={listing.photos[0].url}
                 alt={listing.title}
                 className="w-full h-full object-cover"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-              <Home className="w-32 h-32 text-gray-300" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+              <Home className="w-32 h-32 text-primary/40" />
+            </div>
+          )}
+          
+          {/* Back Button */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onBack}
+            className="absolute top-6 left-6 w-12 h-12 rounded-full bg-card/90 backdrop-blur-xl border border-border/50 flex items-center justify-center text-foreground shadow-xl hover:bg-card transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </motion.button>
+
+          {/* Price Badge */}
+          <div className="absolute top-6 right-6 bg-gradient-to-br from-primary via-primary to-yellow-500 text-black px-6 py-3 rounded-full font-bold text-2xl shadow-xl">
+            {listing.price || listing.rent || 0}€
+            <span className="text-sm font-normal ml-1">/mois</span>
+          </div>
+
+          {/* Match Badge */}
+          <motion.div
+            className="absolute top-20 right-6 bg-card/90 backdrop-blur-xl border border-border/50 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.2, type: "spring" }}
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-foreground">{listing.compatibility_score || 85}% Match</span>
+          </motion.div>
+
+          {/* Bottom Info */}
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <h2 className="text-white text-4xl font-bold mb-2" style={{ fontFamily: 'Outfit' }}>
+              {listing.title || 'Sans titre'}
+            </h2>
+            <div className="flex items-center gap-2 text-white/90">
+              <MapPin className="w-5 h-5" />
+              <span className="text-lg">{listing.city || listing.address?.city || 'Ville'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 space-y-8">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            {listing.surface && (
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="bg-background/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-border/50"
+              >
+                <div className="text-3xl mb-2">📐</div>
+                <div className="text-2xl font-bold text-foreground">{listing.surface}m²</div>
+                <div className="text-sm text-muted-foreground">Surface</div>
+              </motion.div>
+            )}
+            {listing.room_type && (
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="bg-background/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-border/50"
+              >
+                <div className="text-3xl mb-2">🏠</div>
+                <div className="text-2xl font-bold text-foreground capitalize">{listing.room_type}</div>
+                <div className="text-sm text-muted-foreground">Type</div>
+              </motion.div>
+            )}
+            {listing.furnished !== undefined && (
+              <motion.div
+                whileHover={{ y: -4 }}
+                className="bg-background/50 backdrop-blur-sm rounded-2xl p-4 text-center border border-border/50"
+              >
+                <div className="text-3xl mb-2">{listing.furnished ? '🛋️' : '📦'}</div>
+                <div className="text-2xl font-bold text-foreground">{listing.furnished ? 'Meublé' : 'Vide'}</div>
+                <div className="text-sm text-muted-foreground">Ameublement</div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Price Details */}
+          {listing.charges !== undefined && (
+            <motion.div
+              className="bg-background/30 backdrop-blur-sm rounded-2xl p-4 border border-border/50 flex items-center justify-between"
+              whileHover={{ scale: 1.01 }}
+            >
+              <span className="text-muted-foreground font-medium">
+                {listing.charges_included ? '✅ Charges comprises' : `💰 Charges : ${listing.charges}€/mois`}
+              </span>
+            </motion.div>
+          )}
+
+          {/* Description */}
+          {listing.description && (
+            <div className="bg-background/30 backdrop-blur-sm rounded-2xl p-6 border border-border/50">
+              <h3 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2" style={{ fontFamily: 'Outfit' }}>
+                <Info className="w-5 h-5 text-primary" />
+                Description
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">{listing.description}</p>
             </div>
           )}
 
-          <motion.div
-            className="absolute top-6 right-6 bg-gradient-to-r from-[#fec629] to-[#f5b519] text-[#212220] px-6 py-3 rounded-full font-bold text-lg shadow-xl flex items-center gap-2"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Sparkles className="w-5 h-5" />
-            {listing.compatibility_score || 85}% Match
-          </motion.div>
-        </div>
-
-        <div className="p-8">
-          <motion.h2
-            className="text-4xl font-bold text-[#212220] mb-4"
-            style={{ fontFamily: 'Outfit' }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            {listing.title || 'Sans titre'}
-          </motion.h2>
-
-          <motion.div
-            className="flex items-center gap-3 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="bg-gradient-to-r from-[#212220] to-[#3a3b39] text-white px-6 py-3 rounded-full font-bold text-2xl shadow-lg">
-              {listing.price || listing.rent || 0}€
-            </div>
-            <span className="text-gray-600 font-medium text-lg">
-              {listing.charges_included ? 'charges comprises' : `+ ${listing.charges || 0}€ charges`}
-            </span>
-          </motion.div>
-
-          <motion.div
-            className="mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h3 className="text-xl font-bold text-[#212220] mb-3 flex items-center gap-2" style={{ fontFamily: 'Outfit' }}>
-              <Info className="w-5 h-5" />
-              Description
-            </h3>
-            <p className="text-gray-700 leading-relaxed">
-              {listing.description || 'Aucune description disponible.'}
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="flex gap-4 pt-6 border-t-2 border-gray-100"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
+          {/* Action Buttons */}
+          <div className="flex gap-4">
             <motion.button
-              onClick={onPass}
-              className="flex-1 bg-white border-2 border-gray-300 hover:border-[#212220] text-[#212220] px-6 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2 group"
-              whileHover={{ scale: 1.02, y: -2 }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={onPass}
+              className="flex-1 py-4 rounded-2xl bg-background/50 backdrop-blur-sm border-2 border-border/50 text-foreground font-semibold text-lg hover:bg-background transition-colors flex items-center justify-center gap-2"
             >
-              <X className="w-6 h-6 group-hover:rotate-90 transition-transform" />
+              <X className="w-5 h-5" />
               Passer
             </motion.button>
             <motion.button
-              onClick={onLike}
-              className="flex-1 bg-gradient-to-r from-[#fec629] to-[#f5b519] hover:shadow-xl text-[#212220] px-6 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2 group"
-              whileHover={{ scale: 1.02, y: -2 }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={onLike}
+              className="flex-1 py-4 rounded-2xl bg-gradient-to-br from-primary via-primary to-yellow-500 text-black font-bold text-lg shadow-xl hover:shadow-2xl transition-shadow flex items-center justify-center gap-2"
             >
-              <Heart className="w-6 h-6 group-hover:scale-110 transition-transform" fill="currentColor" />
-              Liker
+              <Heart className="w-5 h-5" fill="currentColor" />
+              J'adore !
             </motion.button>
-          </motion.div>
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -492,25 +579,33 @@ function EmptyState() {
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="text-center max-w-md"
+      className="text-center max-w-md w-full"
     >
-      <div className="bg-white rounded-3xl p-12 shadow-xl border-2 border-gray-100">
+      <div className="bg-card/80 backdrop-blur-xl rounded-3xl p-12 shadow-2xl border-2 border-border/50">
         <motion.div
-          className="w-32 h-32 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
+          className="w-32 h-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mx-auto mb-6"
           animate={{
             scale: [1, 1.05, 1],
             rotate: [0, 5, -5, 0]
           }}
           transition={{ duration: 3, repeat: Infinity }}
         >
-          <Home className="w-16 h-16 text-gray-400" />
+          <Home className="w-16 h-16 text-primary" />
         </motion.div>
-        <h3 className="text-3xl font-bold text-[#212220] mb-3" style={{ fontFamily: 'Outfit' }}>
-          Plus de logements
+        <h3 className="text-3xl font-bold text-foreground mb-3" style={{ fontFamily: 'Outfit' }}>
+          🎉 Vous avez tout vu !
         </h3>
-        <p className="text-gray-600 text-lg">
-          Revenez demain pour de nouvelles annonces ! 🏠
+        <p className="text-muted-foreground text-lg mb-6">
+          Pas de nouvelles annonces pour le moment. Revenez demain pour découvrir de nouveaux logements !
         </p>
+        <motion.div
+          className="bg-primary/10 rounded-2xl p-4 border border-primary/20"
+          whileHover={{ scale: 1.02 }}
+        >
+          <p className="text-sm text-foreground font-medium">
+            💡 <span className="font-bold">Astuce :</span> Ajustez vos préférences pour voir plus d'annonces
+          </p>
+        </motion.div>
       </div>
     </motion.div>
   );

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.schemas.visit import VisitCreate, VisitOut, VisitDecline
@@ -9,9 +9,21 @@ from app.controllers import student as student_ctrl
 from app.controllers import listing as listing_ctrl
 from app.controllers import notification as notification_ctrl
 from app.schemas.notification import NotificationCreate
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(tags=["Visits"])
+
+@router.get("", response_model=List[VisitOut])
+async def get_user_visits(
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Récupérer toutes les visites de l'utilisateur (avec token)"""
+    from app.core.auth_helpers import get_user_from_token
+    
+    user = await get_user_from_token(token, db)
+    visits = await visit_ctrl.get_visits_by_user(db, user.id)
+    return visits
 
 @router.post("", response_model=VisitOut)
 async def create_visit(

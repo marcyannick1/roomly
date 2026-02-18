@@ -103,40 +103,32 @@ export default function Landing() {
       </div>
 
       {/* Header */}
-      <motion.header 
-        className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-0 z-50"
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <motion.div 
-            className="flex items-center gap-3"
-            whileHover={{ scale: 1.05 }}
-          >
-            <img src="/logo1.png" alt="Roomly" className="w-70 h-20" />
-            <span
-  className="text-[34px] font-bold"
-  style={{
-    fontFamily: 'Bevan, serif',
-    color: '#1F7A4A',
-    textShadow: `
-      2px 2px 0 #A6E3C2,
-      4px 4px 0 #0E4F2F
-    `,
-    letterSpacing: '0.04em'
-  }}
+<motion.header 
+  className="border-b border-border/50 backdrop-blur-xl bg-background/80 sticky top-0 z-50"
+  initial={{ y: -100 }}
+  animate={{ y: 0 }}
+  transition={{ duration: 0.6, ease: "easeOut" }}
 >
-  ROOMLY
-</span>
-
-          </motion.div>
-          <div className="flex gap-3">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+    <motion.div 
+      className="flex items-center gap-3"
+      whileHover={{ scale: 1.05 }}
+    >
+     {/* Logo Roomly */}
+      <div className="flex items-center gap-3">
+        {/* Icon House/Envelope */}
+        <img src="/image.png" alt="Roomly House" className="h-16 w-auto" />
+        
+        {/* Text Logo */}
+        <img src="/image2.png" alt="Roomly - Swipe ton chez-toi" className="h-12 w-auto" />
+      </div>
+    </motion.div>
+    <div className="flex gap-3">
             <Link to="/login">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button variant="outline" data-testid="header-login-btn" className="rounded-full">
                   Connexion
-                </Button>
+                </Button> 
               </motion.div>
             </Link>
             <Link to="/register">
@@ -294,8 +286,8 @@ export default function Landing() {
                   {/* App Header */}
                   <div className="bg-white px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <img src="/logo.svg" alt="Roomly" className="w-6 h-6" />
-                      <span className="font-bold text-lg text-gray-800" style={{ fontFamily: 'Outfit' }}>Roomly</span>
+                      <img src="/images.png" alt="Roomly House" className="h-6 w-auto" />
+                      <img src="/image2.png" alt="Roomly" className="h-5 w-auto" />
                     </div>
                     <div className="flex gap-2">
                       <img 

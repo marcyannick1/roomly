@@ -1,11 +1,32 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.controllers import notification as notification_ctrl
 from app.schemas.notification import NotificationOut
+from app.core.auth_helpers import get_user_from_token
 from typing import List
 
 router = APIRouter()
+
+@router.get("/unread-count")
+async def get_unread_count_with_token(
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """Obtenir le nombre de notifications non lues (avec token)"""
+    user = await get_user_from_token(token, db)
+    count = await notification_ctrl.get_unread_count(db, user.id)
+    return {"count": count}
+
+@router.get("", response_model=List[NotificationOut])
+async def get_notifications_with_token(
+    token: str = Query(...),
+    unread_only: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """Récupérer les notifications de l'utilisateur connecté (avec token)"""
+    user = await get_user_from_token(token, db)
+    return await notification_ctrl.get_user_notifications(db, user.id, unread_only)
 
 @router.get("/user/{user_id}", response_model=List[NotificationOut])
 async def get_user_notifications(

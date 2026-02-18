@@ -36,6 +36,16 @@ async def create_match(
     landlord = landlord_result.scalar_one_or_none()
     
     # Formater pour le retour
+    listing_dict = None
+    if match.listing:
+        listing_dict = {
+            "id": match.listing.id,
+            "title": match.listing.title,
+            "price": match.listing.price,
+            "city": match.listing.city,
+            "photos": [{"id": p.id, "url": p.url} for p in (match.listing.photos or [])]
+        }
+    
     return {
         'id': match.id,
         'landlord_id': match.landlord_id,
@@ -43,7 +53,7 @@ async def create_match(
         'listing_id': match.listing_id,
         'status': match.status,
         'created_at': match.created_at,
-        'listing': ListingOut.from_orm(match.listing).model_dump(),
+        'listing': listing_dict,
         'landlord': {
             'id': landlord.id,
             'name': landlord.name,
@@ -88,8 +98,16 @@ async def get_student_matches(
         )
         landlord_user = landlord_result.scalar_one_or_none()
         
-        # Convertir le listing en dict via Pydantic
-        listing_dict = ListingOut.from_orm(match.listing).dict() if match.listing else None
+        # Convertir le listing en dict manuellement
+        listing_dict = None
+        if match.listing:
+            listing_dict = {
+                "id": match.listing.id,
+                "title": match.listing.title,
+                "price": match.listing.price,
+                "city": match.listing.city,
+                "photos": [{"id": p.id, "url": p.url} for p in (match.listing.photos or [])]
+            }
         
         match_dict = {
             "id": match.id,
@@ -102,6 +120,8 @@ async def get_student_matches(
             "landlord": {
                 "id": landlord_user.id,
                 "name": landlord_user.name,
+                "first_name": landlord_user.name.split()[0] if landlord_user.name and ' ' in landlord_user.name else landlord_user.name,
+                "last_name": landlord_user.name.split()[1] if landlord_user.name and ' ' in landlord_user.name else "",
                 "email": landlord_user.email,
                 "photo": landlord_user.photo
             } if landlord_user else None
@@ -132,16 +152,27 @@ async def get_landlord_matches(
     # Formater avec les détails
     formatted_matches = []
     for match in matches:
-        # Convertir le listing en dict via Pydantic
-        listing_dict = ListingOut.from_orm(match.listing).dict() if match.listing else None
+        # Convertir le listing en dict manuellement
+        listing_dict = None
+        if match.listing:
+            listing_dict = {
+                "id": match.listing.id,
+                "title": match.listing.title,
+                "price": match.listing.price,
+                "city": match.listing.city,
+                "photos": [{"id": p.id, "url": p.url} for p in (match.listing.photos or [])]
+            }
         
         # Récupérer les infos de l'étudiant
         student_data = None
         if match.student:
+            student_name = match.student.user.name if match.student.user else None
             student_data = {
                 'id': match.student.id,
                 'user_id': match.student.user_id,
-                'name': match.student.user.name if match.student.user else None,
+                'name': student_name,
+                'first_name': student_name.split()[0] if student_name and ' ' in student_name else student_name,
+                'last_name': student_name.split()[1] if student_name and ' ' in student_name else "",
                 'photo': match.student.user.photo if match.student.user else None,
                 'university': match.student.university,
                 'study_level': match.student.study_level,

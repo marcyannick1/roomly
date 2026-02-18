@@ -64,6 +64,7 @@ class ListingOut(BaseModel):
     title: str
     description: Optional[str] = None
     price: Optional[float] = None
+    rent: Optional[float] = None  # Alias pour price
     surface: Optional[float] = None
     charges_included: Optional[bool] = None
     deposit: Optional[float] = None
@@ -73,6 +74,7 @@ class ListingOut(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     room_type: Optional[str] = None
+    property_type: Optional[str] = None  # Alias pour room_type
     furnished: Optional[bool] = None
     floor: Optional[int] = None
     total_floors: Optional[int] = None
@@ -90,11 +92,41 @@ class ListingOut(BaseModel):
     ac: Optional[bool] = None
     garden: Optional[bool] = None
     balcony: Optional[bool] = None
+    colocation: Optional[bool] = None
+    rooms: Optional[int] = None  # Nombre de pièces
+    bedrooms: Optional[int] = None  # Nombre de chambres
     owner_id: Optional[int] = None
     photos: List[ListingPhotoOut] = []
+    images: List[str] = []  # URLs des images pour compatibilité frontend
+    is_active: Optional[bool] = True
+    amenities: List[str] = []  # Liste des équipements disponibles
+    likes_count: int = 0  # Nombre de likes reçus
 
     class Config:
         from_attributes = True
+        
+    @property
+    def computed_images(self) -> List[str]:
+        """Extraire les URLs des photos pour le frontend"""
+        return [photo.url for photo in self.photos] if self.photos else []
+    
+    @property
+    def computed_amenities(self) -> List[str]:
+        """Liste des équipements disponibles"""
+        amenities_list = []
+        if self.wifi: amenities_list.append("wifi")
+        if self.washing_machine: amenities_list.append("washing_machine")
+        if self.kitchen: amenities_list.append("kitchen")
+        if self.parking: amenities_list.append("parking")
+        if self.elevator: amenities_list.append("elevator")
+        if self.workspace: amenities_list.append("workspace")
+        if self.pets: amenities_list.append("pets")
+        if self.tv: amenities_list.append("tv")
+        if self.dryer: amenities_list.append("dryer")
+        if self.ac: amenities_list.append("ac")
+        if self.garden: amenities_list.append("garden")
+        if self.balcony: amenities_list.append("balcony")
+        return amenities_list
 
 
 class LikeWithDetailsOut(BaseModel):

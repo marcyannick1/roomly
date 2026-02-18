@@ -1,164 +1,204 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Heart, MessageCircle, Calendar, Star, Bell, User, Settings, Flame, CheckCircle2, LogOut, Plus, Eye } from 'lucide-react';
+import { Home, Heart, MessageCircle, Calendar, Star, Bell, User, Settings, Flame, CheckCircle2, LogOut, Users, TrendingUp, Puzzle, Terminal } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function DashboardNavbar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isStudent = user?.role === 'student';
-  const isLandlord = user?.role === 'landlord';
+  const [hoveredIndex, setHoveredIndex] = React.useState(null);
 
-  // Navigation items communes et spécifiques
   const studentItems = [
-    { id: 'feed', icon: Flame, label: 'Découvrir', path: '/dashboard/feed', gradient: 'from-orange-400 to-red-500' },
-    { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: '/dashboard/matches', gradient: 'from-green-400 to-emerald-500' },
-    { id: 'messages', icon: MessageCircle, label: 'Messages', path: '/dashboard/messages', gradient: 'from-blue-400 to-cyan-500' },
-    { id: 'visits', icon: Calendar, label: 'Planning', path: '/dashboard/visits', gradient: 'from-teal-400 to-emerald-600' },
-    { id: 'liked', icon: Star, label: 'Mes likes', path: '/dashboard/liked', gradient: 'from-yellow-400 to-amber-500' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', path: '/dashboard/notifications', gradient: 'from-purple-400 to-pink-500' },
-    { id: 'profile', icon: User, label: 'Profil', path: '/dashboard/profile', gradient: 'from-indigo-400 to-purple-500' },
-    { id: 'settings', icon: Settings, label: 'Paramètres', path: '/dashboard/settings', gradient: 'from-gray-400 to-slate-500' },
+    { id: 'feed', icon: Home, label: 'Dashboard', path: '/dashboard/feed' },
+    { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: '/dashboard/matches' },
+    { id: 'messages', icon: MessageCircle, label: 'Messages', path: '/dashboard/messages' },
+    { id: 'visits', icon: Calendar, label: 'Planning', path: '/dashboard/visits' },
   ];
 
   const landlordItems = [
-    { id: 'listings', icon: Home, label: 'Mes annonces', path: '/dashboard/listings', gradient: 'from-blue-500 to-indigo-600' },
-    { id: 'students', icon: Heart, label: 'Intérêts reçus', path: '/dashboard/students', gradient: 'from-pink-500 to-rose-600' },
-    { id: 'matches', icon: CheckCircle2, label: 'Matchs', path: '/dashboard/matches', gradient: 'from-green-400 to-emerald-500' },
-    { id: 'messages', icon: MessageCircle, label: 'Messages', path: '/dashboard/messages', gradient: 'from-purple-500 to-pink-500' },
-    { id: 'visits', icon: Calendar, label: 'Planning', path: '/dashboard/visits', gradient: 'from-teal-400 to-emerald-600' },
-    { id: 'notifications', icon: Bell, label: 'Notifications', path: '/dashboard/notifications', gradient: 'from-purple-400 to-pink-500' },
-    { id: 'profile', icon: User, label: 'Profil', path: '/dashboard/profile', gradient: 'from-indigo-400 to-purple-500' },
+    { id: 'listings', icon: Home, label: 'Dashboard', path: '/dashboard/listings' },
+    { id: 'students', icon: TrendingUp, label: 'Intérêts', path: '/dashboard/students' },
+    { id: 'matches', icon: Users, label: 'Locataires', path: '/dashboard/matches' },
+    { id: 'messages', icon: MessageCircle, label: 'Messages', path: '/dashboard/messages' },
+  ];
+
+  const bottomItems = [
+    { id: 'integrations', icon: Puzzle, label: 'Intégrations', path: '/dashboard/integrations' },
+    { id: 'settings', icon: Settings, label: 'Paramètres', path: '/dashboard/settings' },
   ];
 
   const navItems = isStudent ? studentItems : landlordItems;
 
+  const NavItem = ({ item, index }) => {
+    const isActive = location.pathname === item.path;
+    const isHovered = hoveredIndex === index;
+    const Icon = item.icon;
+
+    return (
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.button
+              onClick={() => navigate(item.path)}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              className={`relative w-full flex items-center gap-4 px-4 py-3 rounded-2xl border-none overflow-hidden transition-all duration-300 ${
+                isActive 
+                  ? 'bg-gray-50' 
+                  : isHovered 
+                    ? 'bg-gray-50/50' 
+                    : 'bg-transparent'
+              }`}
+              whileTap={{ scale: 0.96 }}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeIndicator"
+                  className="absolute left-0 w-1 h-10 rounded-r-full bg-gradient-to-b from-[#fec629] to-[#fdb913]"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+
+              <motion.div
+                className="relative flex items-center justify-center"
+                animate={{
+                  scale: isActive ? 1.02 : 1,
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              >
+                <Icon 
+                  className={`w-6 h-6 transition-all duration-300 ${
+                    isActive ? "text-gray-900" : "text-gray-600 group-hover:text-gray-900"
+                  }`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+
+                {item.notifications > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1"
+                  >
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-red-600 px-1.5 text-[10px] font-bold text-white shadow-md shadow-red-500/40">
+                      {item.notifications > 9 ? "9+" : item.notifications}
+                    </span>
+                  </motion.div>
+                )}
+              </motion.div>
+
+              <span className={`text-sm font-medium transition-all duration-300 ${
+                isActive ? 'text-gray-900 font-semibold' : 'text-gray-700 group-hover:text-gray-900'
+              }`}>
+                {item.label}
+              </span>
+            </motion.button>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="bg-gray-900 text-white border-0 px-3 py-2 rounded-xl shadow-xl">
+            <p className="font-medium text-sm">{item.label}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   return (
-    <motion.aside
-      className="w-72 bg-gradient-to-br from-[#fec629] to-[#f5b519] text-[#212220] flex flex-col shadow-2xl fixed left-0 top-0 h-screen z-50 border-r border-[#212220]/10"
-      initial={{ x: -300 }}
-      animate={{ x: 0 }}
-      transition={{ type: "spring", damping: 20 }}
+    <motion.nav
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="fixed left-0 top-0 h-screen w-[17rem] bg-white/80 backdrop-blur-xl border-r border-gray-100 flex flex-col items-center py-6 z-50"
+      style={{
+        boxShadow: "4px 0 24px -2px rgba(0, 0, 0, 0.05), 8px 0 48px -4px rgba(16, 185, 129, 0.03)"
+      }}
     >
       {/* Logo */}
-      <div className="p-6 border-b border-[#212220]/10">
-        <motion.div
-          className="flex items-center gap-3 mb-6 cursor-pointer"
-          whileHover={{ scale: 1.02 }}
-          onClick={() => navigate('/dashboard')}
-        >
-          <div className="w-12 h-12 bg-[#212220] rounded-2xl flex items-center justify-center shadow-lg p-1 relative overflow-hidden">
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-br from-[#fec629]/20 to-transparent"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            <img
-              src="/logo.svg"
-              alt="Roomly Logo"
-              className="w-full h-full object-contain relative z-10"
-            />
-          </div>
-          <span className="text-2xl font-bold text-[#212220]" style={{ fontFamily: 'Outfit' }}>Roomly</span>
-        </motion.div>
+      <motion.div 
+        className="mb-8 flex items-center gap-2"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => navigate(isStudent ? '/dashboard/feed' : '/dashboard/listings')}
+      >
+        <div className="cursor-pointer flex items-center gap-2">
+          <img src="/smile.png" alt="Roomly" className="w-10 h-10" />
+          <img src="/text.png" alt="Roomly" className="h-8" />
+        </div>
+      </motion.div>
 
-        {/* User info */}
-        <motion.div
-          className="bg-[#212220]/10 backdrop-blur-sm rounded-2xl p-4 border border-[#212220]/10 relative overflow-hidden"
-          whileHover={{ scale: 1.02 }}
-        >
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-            animate={{ x: [-200, 200] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <div className="flex items-center gap-3 relative z-10">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              {user?.photo ? (
-                <img
-                  src={user.photo}
-                  alt={user.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-[#212220]"
-                />
-              ) : (
-                <div className="w-12 h-12 bg-[#212220] rounded-full flex items-center justify-center font-bold text-lg shadow-lg text-[#fec629]">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              )}
-            </motion.div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-[#212220] truncate">{user?.name || 'Utilisateur'}</p>
-              <p className="text-xs text-[#212220]/70 truncate">{user?.email || ''}</p>
-            </div>
-          </div>
-        </motion.div>
+      {/* Main navigation */}
+      <div className="flex-1 w-full flex flex-col items-center space-y-1 px-2">
+        {navItems.map((item, index) => (
+          <NavItem key={item.id} item={item} index={index} />
+        ))}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 overflow-y-auto">
-        <div className="space-y-2">
-          {navItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
-            return (
+      {/* Divider */}
+      <div className="w-10 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
+
+      {/* Bottom navigation */}
+      <div className="w-full flex flex-col items-center space-y-1 px-2 mb-4">
+        {bottomItems.map((item, index) => (
+          <NavItem key={item.id} item={item} index={navItems.length + index} />
+        ))}
+      </div>
+
+      {/* User profile */}
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <motion.div 
+              className="relative cursor-pointer group"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="p-0.5 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 shadow-md">
+                {user?.photo ? (
+                  <img
+                    src={user.photo}
+                    alt={user.name}
+                    className="w-11 h-11 rounded-full object-cover border-2 border-white"
+                  />
+                ) : (
+                  <div className="w-11 h-11 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full flex items-center justify-center font-bold text-gray-700 text-sm border-2 border-white">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
+              
+              <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full shadow-sm" />
+            </motion.div>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="bg-gray-900 text-white border-0 px-4 py-3 rounded-xl shadow-xl min-w-[200px]">
+            <div className="text-left space-y-2">
+              <div>
+                <p className="font-semibold text-sm">{user?.name || 'Utilisateur'}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{user?.email || ''}</p>
+                <p className="text-xs text-gray-300 mt-1 font-medium capitalize">{user?.role === 'student' ? 'Étudiant' : 'Propriétaire'}</p>
+              </div>
+              <div className="h-px bg-gray-700" />
               <motion.button
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${
-                  isActive
-                    ? 'bg-[#212220] text-[#fec629] shadow-lg'
-                    : 'hover:bg-[#212220]/10 text-[#212220]/70 hover:text-[#212220]'
-                }`}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLogout();
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all text-xs font-medium"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {isActive && (
-                  <motion.div
-                    className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20`}
-                    layoutId="activeTab"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <item.icon className="w-5 h-5 relative z-10" />
-                <span className="font-medium relative z-10">{item.label}</span>
-                {item.badge > 0 && (
-                  <motion.span
-                    className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold relative z-10"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                  >
-                    {item.badge}
-                  </motion.span>
-                )}
+                <LogOut className="w-3.5 h-3.5" />
+                Déconnexion
               </motion.button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Logout */}
-      <div className="p-4 border-t border-[#212220]/10">
-        <motion.button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#212220]/10 hover:bg-[#212220]/20 text-[#212220]/70 hover:text-[#212220] transition-all duration-200 group"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <motion.div
-            animate={{ rotate: 0 }}
-            whileHover={{ rotate: 180 }}
-            transition={{ duration: 0.3 }}
-          >
-            <LogOut className="w-5 h-5" />
-          </motion.div>
-          <span className="font-medium">Déconnexion</span>
-        </motion.button>
-      </div>
-    </motion.aside>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </motion.nav>
   );
 }
