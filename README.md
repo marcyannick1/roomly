@@ -5,8 +5,32 @@
 ## 🚀 Démarrage Rapide
 
 ### Prérequis
-- Docker & Docker Compose installés 
-_En vrai installez juste **Docker desktop c'est tout.**_
+- **Docker & Docker Compose** installés (pour la base de données)
+- **Node.js 18+** (pour le frontend React/Vite)
+- **Python 3.10+** (pour le backend FastAPI)
+- **uv** installé (gestionnaire de dépendances Python)
+
+#### Installation de uv
+
+**macOS / Linux :**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows :**
+```bash
+powershell -ExecutionPolicy BypassUser -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Ou avec Homebrew (macOS) :
+```bash
+brew install uv
+```
+
+Vérifier l'installation :
+```bash
+uv --version
+```
 
 ### Installation
 
@@ -21,21 +45,50 @@ _En vrai installez juste **Docker desktop c'est tout.**_
 
 > 📝 **Note**: Un seul fichier `.env` est utilisé, à la **racine du projet**. Toutes les variables d'environnement y sont définies.
 
-2. **Démarrer tous les services**
+2. **Démarrer la base de données (Docker)**
 
 ```bash
-   docker-compose up -d --build
+   docker-compose up -d
 ```
 
-3. **Exécuter les migrations** (première fois uniquement)
+### 🏃 Lancer l'Application
+
+L'application nécessite de lancer le backend et le frontend **séparément** (ils ne sont pas dockerisés).
+
+#### Backend (FastAPI) - À lancer en premier ⚠️
 
 ```bash
-   docker exec -it roomly_api uv run alembic upgrade head
+# 1. Se placer dans le dossier backend
+cd backend
+
+# 2. Lancer l'API avec uv (uv installe et gère automatiquement les dépendances)
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-4. **Accéder à l'application**
+L'API sera accessible à : http://localhost:8000/docs (Swagger UI)
+
+#### Frontend (React/Vite)
+
+Dans un **autre terminal** :
+
+```bash
+# 1. Se placer dans le dossier frontend
+cd frontend
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Lancer le serveur de développement
+npm run dev
+```
+
+Le frontend sera accessible à : http://localhost:5173
+
+#### Accès à l'application
+
+Une fois les deux services lancés :
    - Frontend : http://localhost:5173
-   - API : http://localhost:8000/docs
+   - API : http://localhost:8000/docs (Swagger UI)
    - pgAdmin : http://localhost:5050
 
 ## 📦 Services
@@ -77,22 +130,8 @@ docker-compose down -v
 
 # Voir les logs
 docker-compose logs -f api
-
-# Reconstruire après modification du code
-docker-compose up -d --build api
-
-# Créer une nouvelle migration
-docker exec -it roomly_api uv run alembic revision --autogenerate -m "description"
-
-# Appliquer les migrations
-docker exec -it roomly_api uv run alembic upgrade head
-
-# Accéder au shell du conteneur API
-docker exec -it roomly_api /bin/bash
-
-# Installer de nouvelles dépendances Python
-docker exec -it roomly_api uv add package-name
 ```
+
 
 ## 📝 Notes
 
