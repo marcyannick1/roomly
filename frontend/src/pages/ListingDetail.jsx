@@ -27,7 +27,7 @@ export default function ListingDetail() {
   const navItems = useMemo(() => {
     if (!currentUser) return [];
     
-    if (currentUser.is_landlord) {
+    if (currentUser.role === "landlord") {
       return [
         { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
         { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
@@ -253,7 +253,7 @@ export default function ListingDetail() {
         <Button 
           variant="ghost" 
           className="mb-6 rounded-full"
-          onClick={() => navigate(currentUser?.is_landlord ? '/landlord/dashboard' : '/student/dashboard')}
+          onClick={() => navigate(currentUser?.role === "landlord" ? '/landlord/dashboard' : '/student/dashboard')}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
@@ -327,7 +327,7 @@ export default function ListingDetail() {
                   <Share2 className="h-4 w-4 mr-2" />
                   Partager
                 </Button>
-                {landlord?.user_type === 'landlord' && (
+                {landlord?.role === 'landlord' && (
                   <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
                     <CheckCircle className="h-4 w-4" />
                     Bailleur vérifié
@@ -393,7 +393,7 @@ export default function ListingDetail() {
                     <p className="font-semibold text-foreground">
                       {landlord?.name || 'Propriétaire'}
                     </p>
-                    {landlord?.user_type === 'landlord' && (
+                    {landlord?.role === 'landlord' && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-semibold">
                         <CheckCircle className="h-3 w-3" />
                         Vérifié
@@ -405,7 +405,7 @@ export default function ListingDetail() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Email: {landlord?.email || 'Non communiqué'}</p>
                 <p>Téléphone: {landlord?.telephone || 'Non communiqué'}</p>
-                <p>Statut: {landlord?.user_type === 'landlord' ? 'Bailleur vérifié' : 'Bailleur'}</p>
+                <p>Statut: {landlord?.role === 'landlord' ? 'Bailleur vérifié' : 'Bailleur'}</p>
               </div>
               <div className="mt-5 grid gap-2">
                 <Button className="w-full rounded-full">Contacter le bailleur</Button>

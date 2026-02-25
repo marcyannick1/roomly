@@ -7,135 +7,127 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-  // Get token from cookie
-  const token = document.cookie
+// Read access token from cookie
+const getToken = () =>
+  document.cookie
     .split('; ')
-    .find(row => row.startsWith('session_token='))
+    .find(row => row.startsWith('access_token='))
     ?.split('=')[1];
-  
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  
+
+// Attach Bearer token to every request
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Auth
+// ─── Auth ────────────────────────────────────────────────────────────────────
+// Register → returns UserRead { id, email, role, is_onboarded, ... }
 export const register = (data) => api.post('/auth/register', data);
-export const login = (data) => api.post('/auth/login', data);
-export const googleCallback = (sessionId) => api.post('/auth/google/callback', { session_id: sessionId });
-export const getCurrentUser = () => api.get('/auth/me');
+
+// Login → returns { access_token, token_type }
+export const login = (data) =>
+  api.post('/auth/login', data, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+
 export const logout = () => api.post('/auth/logout');
 
-// Users
-export const getUserById = (userId) => api.get(`/users/${userId}`);
-export const uploadProfilePhoto = (userId, photoFile) => {
+// fastapi-users exposes GET /users/me for the current user
+export const getCurrentUser = () => api.get('/users/me');
+
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password) =>
+  api.post('/auth/reset-password', { token, password });
+export const requestEmailVerification = () => api.post('/auth/request-verify-token');
+export const verifyEmail = (token) => api.post('/auth/verify', { token });
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+export const deleteUserAccount = () => api.delete('/users/me');
+
+export const uploadProfilePhoto = (_userId, photoFile) => {
   const formData = new FormData();
-  formData.append('photo', photoFile);
-  return api.post(`/users/${userId}/photo`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  formData.append('file', photoFile);
+  return api.post('/media/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
-export const deleteProfilePhoto = (userId) => api.delete(`/users/${userId}/photo`);
-export const deleteUserAccount = (userId) => api.delete(`/users/${userId}`);
+export const deleteProfilePhoto = () => api.delete('/media/avatar');
+// Kept for backward compat (LandlordDashboard calls getUserById)
+export const getUserById = (userId) => api.get(`/auth/users/${userId}`);
 
-// Profiles
-export const getStudentProfile = (userId) => api.get(`/students/profile/${userId}`);
-export const updateStudentProfile = (profile) => api.post('/students/profile', profile);
-export const getLandlordProfile = (userId) => api.get(`/landlords/profile/${userId}`);
-export const updateLandlordProfile = (profile) => api.post('/landlords/profile', profile);
+// ─── Profiles ─────────────────────────────────────────────────────────────────
+export const getStudentProfile = () => api.get('/profiles/me/student');
+export const createStudentProfile = (profile) => api.post('/profiles/student', profile);
+export const updateStudentProfile = (profile) => api.patch('/profiles/student', profile);
 
-// Listings
-export const createListing = (listing) => api.post('/listings', listing);
-export const getListing = (listingId) => {
-  if (!listingId) throw new Error('Listing ID is required');
-  return api.get(`/listings/${listingId}`);
+export const getLandlordProfile = () => api.get('/profiles/me/landlord');
+export const createLandlordProfile = (profile) => api.post('/profiles/landlord', profile);
+export const updateLandlordProfile = (profile) => api.patch('/profiles/landlord', profile);
+
+// ─── Properties ───────────────────────────────────────────────────────────────
+export const getAllListings = (params) => api.get('/properties/', { params });
+export const getListing = (propertyId) => {
+  if (!propertyId) throw new Error('Property ID is required');
+  return api.get(`/properties/${propertyId}`);
 };
-export const getLandlordListings = (landlordId) => {
-  if (!landlordId) throw new Error('Landlord ID is required');
-  return api.get(`/listings/landlord/${Number(landlordId)}`);
+export const getLandlordListings = () => api.get('/properties/me');
+export const createListing = (listing) => api.post('/properties/', listing);
+export const updateListing = (propertyId, listing) => {
+  if (!propertyId) throw new Error('Property ID is required');
+  return api.patch(`/properties/${propertyId}`, listing);
 };
-export const updateListing = (listingId, listing) => {
-  if (!listingId) throw new Error('Listing ID is required');
-  
-  const formData = new FormData();
-  
-  // Ajouter tous les champs simples
-  formData.append('title', listing.title || '');
-  formData.append('room_type', listing.type || 'studio');
-  formData.append('price', listing.rent || 0);
-  formData.append('city', listing.address?.city || '');
-  formData.append('owner_id', listing.landlord_id || '');
-  
-  // Champs optionnels texte
-  formData.append('description', listing.description || '');
-  formData.append('address', listing.address?.street || '');
-  formData.append('postal_code', listing.address?.postal_code || '');
-  
-  // Champs optionnels numériques
-  formData.append('surface', listing.surface || 0);
-  formData.append('deposit', listing.deposit || 0);
-  formData.append('available_from', listing.available_from || '');
-  
-  // Booléens
-  formData.append('charges_included', listing.charges > 0 ? 'true' : 'false');
-  formData.append('furnished', listing.furnished ? 'true' : 'false');
-  
-  // Équipements
-  formData.append('wifi', listing.wifi ? 'true' : 'false');
-  formData.append('workspace', listing.workspace ? 'true' : 'false');
-  formData.append('parking', listing.parking ? 'true' : 'false');
-  formData.append('pets', listing.pets ? 'true' : 'false');
-  formData.append('tv', listing.tv ? 'true' : 'false');
-  formData.append('elevator', listing.elevator ? 'true' : 'false');
-  formData.append('washing_machine', listing.washing_machine ? 'true' : 'false');
-  formData.append('dryer', listing.dryer ? 'true' : 'false');
-  formData.append('ac', listing.ac ? 'true' : 'false');
-  formData.append('kitchen', listing.kitchen ? 'true' : 'false');
-  formData.append('garden', listing.garden ? 'true' : 'false');
-  formData.append('balcony', listing.balcony ? 'true' : 'false');
-  
-  // Photos (si des fichiers File sont fournis)
-  if (listing.photoFiles && listing.photoFiles.length > 0) {
-    listing.photoFiles.forEach(file => {
-      formData.append('photos', file);
-    });
-  }
-  
-  return api.put(`/listings/${listingId}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-};
-export const deleteListing = (listingId) => {
-  if (!listingId) throw new Error('Listing ID is required');
-  return api.delete(`/listings/${listingId}`);
+export const deleteListing = (propertyId) => {
+  if (!propertyId) throw new Error('Property ID is required');
+  return api.delete(`/properties/${propertyId}`);
 };
 
-// Matching
-export const getStudentFeed = (studentId) => api.get(`/ai/recommendations/${studentId}?limit=20`);
-export const likeListing = (studentId, listingId) => api.post(`/students/${studentId}/like/${listingId}`);
-export const unlikeListing = (studentId, listingId) => api.delete(`/students/${studentId}/reaction/${listingId}`);
-export const getStudentLikedListings = (studentId) => api.get(`/students/${studentId}/liked`);
-export const getInterestedStudents = (listingId) => api.get(`/listings/${listingId}/interested-students`);
-export const getLandlordReceivedLikes = (landlordId) => api.get(`/landlords/${landlordId}/likes`);
-export const createMatch = (landlordId, studentId, listingId) => api.post(`/landlords/${landlordId}/match/${studentId}/${listingId}`);
-export const getStudentMatches = (userId) => api.get(`/matches/user/${userId}`);
-export const getLandlordMatches = (landlordId) => api.get(`/matches/landlord/${landlordId}`);
-
-// Messages
-export const sendMessage = (message) => api.post('/messages', message);
-export const getMatchMessages = (matchId) => api.get(`/matches/${matchId}/messages`);
-export const markMessageRead = (messageId) => api.patch(`/messages/${messageId}/read`);
-
-// Upload
-export const uploadFile = (file) => {
+// ─── Media ────────────────────────────────────────────────────────────────────
+export const uploadPropertyImage = (propertyId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+  return api.post(`/media/properties/${propertyId}/images`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+export const deletePropertyImage = (imageId) => api.delete(`/media/images/${imageId}`);
+export const uploadFile = (propertyId, file) => uploadPropertyImage(propertyId, file);
+
+// ─── Interactions ─────────────────────────────────────────────────────────────
+export const getStudentFeed = () => api.get('/properties/');
+
+export const likeListing = (_studentId, listingId) =>
+  api.post('/interactions/swipe', { property_id: listingId, swipe_type: 'like' });
+
+export const superlikeListing = (_studentId, listingId) =>
+  api.post('/interactions/swipe', { property_id: listingId, swipe_type: 'superlike' });
+
+export const unlikeListing = (_studentId, listingId) =>
+  api.delete(`/interactions/swipe/${listingId}`);
+
+export const getStudentLikedListings = () => api.get('/interactions/my-likes');
+export const getLandlordReceivedLikes = () => api.get('/interactions/landlord/received-likes');
+export const getInterestedStudents = () => api.get('/interactions/landlord/received-likes');
+
+export const createMatch = (_landlordId, _studentId, swipeId) =>
+  api.post(`/interactions/landlord/accept-swipe/${swipeId}`);
+export const rejectSwipe = (swipeId) =>
+  api.post(`/interactions/landlord/reject-swipe/${swipeId}`);
+
+export const getStudentMatches = () => api.get('/interactions/matches');
+export const getLandlordMatches = () => api.get('/interactions/matches');
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+export const getMatchMessages = (matchId) => api.get(`/messages/${matchId}`);
+export const sendMessage = (message) => api.post('/messages/', message);
+export const markMessageRead = (_messageId) => Promise.resolve();
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+export const getNotifications = () => api.get('/notifications/');
+export const markNotificationRead = (notificationId) =>
+  api.patch(`/notifications/${notificationId}/read`);
+
+// ─── Amenities ────────────────────────────────────────────────────────────────
+export const getAmenities = () => api.get('/amenities/');
 
 export default api;
