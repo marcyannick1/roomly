@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCurrentUser, getUserById, getStudentProfile, getLandlordProfile } from '@/lib/api';
+import { getCurrentUser, getStudentProfile, getLandlordProfile } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, User, Phone, MapPin, GraduationCap, Home, DollarSign, CheckCircle, XCircle, Volume2, Heart, Building2, Calendar, Eye, LogOut, Flame, Settings, Plus, MessageCircle, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -30,33 +30,26 @@ export default function UserProfile() {
       setError(null);
       setLoading(true);
 
-      // Load current user
+      // Load current authenticated user (JWT-based, no ID needed)
       const currentUserResponse = await getCurrentUser();
-      const currentUserData = currentUserResponse.data?.user || currentUserResponse.data;
+      const currentUserData = currentUserResponse.data;
       setCurrentUser(currentUserData);
+      setUser(currentUserData); // Profile page always shows own profile
 
-      // Load target user
-      const userResponse = await getUserById(userId);
-      const userData = userResponse.data.user || userResponse.data;
-      console.log('UserProfile - userData loaded:', userData);
-      console.log('UserProfile - is_landlord:', userData.is_landlord);
-      console.log('UserProfile - user_type:', userData.user_type);
-      setUser(userData);
-
-      // Load profile based on user type
-      if (!userData.is_landlord) {
+      // Load profile based on role
+      if (currentUserData.role === 'student') {
         try {
-          const profileResponse = await getStudentProfile(userId);
+          const profileResponse = await getStudentProfile();
           setProfile(profileResponse.data);
         } catch (err) {
-          console.log('No student profile found');
+          console.log('No student profile found yet');
         }
       } else {
         try {
-          const profileResponse = await getLandlordProfile(userId);
+          const profileResponse = await getLandlordProfile();
           setProfile(profileResponse.data);
         } catch (err) {
-          console.log('No landlord profile found');
+          console.log('No landlord profile found yet');
         }
       }
     } catch (err) {
@@ -68,26 +61,27 @@ export default function UserProfile() {
   };
 
   const handleLogout = () => {
-    document.cookie = 'session_token=; path=/; max-age=0';
+    // Clear access_token cookie
+    document.cookie = 'access_token=; path=/; max-age=0';
     navigate('/');
   };
 
   // Navigation items based on user type
-  const navItems = currentUser?.user_type === 'student' 
+  const navItems = currentUser?.role === 'student'
     ? [
-        { id: 'feed', icon: Flame, label: 'Découvrir', path: '/student/dashboard' },
-        { id: 'matches', icon: MessageCircle, label: 'Matchs', path: '/student/dashboard' },
-        { id: 'liked', icon: Star, label: 'Mes likes', path: '/student/dashboard' },
-        { id: 'profile', icon: User, label: 'Profil', path: `/profile/${currentUser?.id}` },
-        { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
-      ]
+      { id: 'feed', icon: Flame, label: 'Découvrir', path: '/student/dashboard' },
+      { id: 'matches', icon: MessageCircle, label: 'Matchs', path: '/student/dashboard' },
+      { id: 'liked', icon: Star, label: 'Mes likes', path: '/student/dashboard' },
+      { id: 'profile', icon: User, label: 'Profil', path: `/profile/${currentUser?.id}` },
+      { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+    ]
     : [
-        { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
-        { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
-        { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
-        { id: 'profile', icon: User, label: 'Profil', path: `/profile/${currentUser?.id}` },
-        { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
-      ];
+      { id: 'listings', icon: Home, label: 'Mes annonces', path: '/landlord/dashboard' },
+      { id: 'students', icon: Eye, label: 'Intéressés', path: '/landlord/dashboard' },
+      { id: 'create', icon: Plus, label: 'Créer une annonce', path: '/landlord/listing/new' },
+      { id: 'profile', icon: User, label: 'Profil', path: `/profile/${currentUser?.id}` },
+      { id: 'settings', icon: Settings, label: 'Paramètres', path: null },
+    ];
 
   if (loading) {
     return (
@@ -138,11 +132,10 @@ export default function UserProfile() {
                       // Settings en cours
                     }
                   }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${
-                    isActive
-                      ? 'bg-[#212220] text-[#fec629] shadow-lg'
-                      : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
-                  }`}
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${isActive
+                    ? 'bg-[#212220] text-[#fec629] shadow-lg'
+                    : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
+                    }`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'}`} />
                   <span className="font-medium">{item.label}</span>
@@ -180,7 +173,7 @@ export default function UserProfile() {
                 {error}
               </h1>
               <p className="text-gray-600 mb-6">Le profil demandé n'existe pas.</p>
-              <Button onClick={() => navigate(currentUser?.user_type === 'student' ? '/student/dashboard' : '/landlord/dashboard')} className="bg-[#fec629] hover:bg-[#212220] text-[#212220] hover:text-[#fec629] rounded-full">
+              <Button onClick={() => navigate(currentUser?.role === 'student' ? '/student/dashboard' : '/landlord/dashboard')} className="bg-[#fec629] hover:bg-[#212220] text-[#212220] hover:text-[#fec629] rounded-full">
                 Retour au dashboard
               </Button>
             </div>
@@ -199,9 +192,11 @@ export default function UserProfile() {
                       </h1>
                       <div className="flex items-center gap-3">
                         <span className="bg-[#fec629] text-[#212220] px-4 py-1.5 rounded-full text-sm font-bold">
-                          {user?.is_landlord ? '🏠 Bailleur' : '🎓 Étudiant'}
+                          {user?.role === "landlord" ? '🏠 Bailleur' : '🎓 Étudiant'}
                         </span>
-                        <span className="text-gray-600">Membre depuis {new Date(user?.created_at).toLocaleDateString('fr-FR')}</span>
+                        {user?.created_at && (
+                          <span className="text-gray-600">Membre depuis {new Date(user.created_at).toLocaleDateString('fr-FR')}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -236,7 +231,7 @@ export default function UserProfile() {
                       Type de compte
                     </div>
                     <p className="font-semibold text-[#212220]">
-                      {user?.is_landlord ? 'Bailleur' : 'Étudiant'}
+                      {user?.role === "landlord" ? 'Bailleur' : 'Étudiant'}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-2xl p-4">
@@ -250,7 +245,7 @@ export default function UserProfile() {
               </div>
 
               {/* Student Profile */}
-              {!user?.is_landlord && profile && (
+              {!user?.role === "landlord" && profile && (
                 <>
                   <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-100">
                     <h2 className="text-2xl font-bold text-[#212220] mb-6" style={{ fontFamily: 'Outfit' }}>
@@ -353,7 +348,7 @@ export default function UserProfile() {
               )}
 
               {/* Landlord Profile */}
-              {user?.user_type === 'landlord' && profile && (
+              {user?.role === 'landlord' && profile && (
                 <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-100">
                   <h2 className="text-2xl font-bold text-[#212220] mb-6" style={{ fontFamily: 'Outfit' }}>
                     🏘️ Informations bailleur

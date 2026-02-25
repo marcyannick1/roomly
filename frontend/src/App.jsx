@@ -17,24 +17,25 @@ import ListingForm from "@/pages/ListingForm";
 import LandlordListingForm from "@/pages/LandlordListingForm";
 import ListingDetail from "@/pages/ListingDetail";
 import Messages from "@/pages/Messages";
+import MessagesList from "@/pages/MessagesList";
 import UserProfile from "@/pages/UserProfile";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 function AppRouter() {
   const location = useLocation();
-  
+
   // Check URL fragment for session_id during render (prevents race conditions)
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
   }
-  
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/role-selection" element={<RoleSelection />} />
-      
+
       {/* Protected Routes */}
       <Route path="/student/onboarding" element={
         <ProtectedRoute><StudentOnboarding /></ProtectedRoute>
@@ -60,10 +61,13 @@ function AppRouter() {
       <Route path="/profile/:userId" element={
         <ProtectedRoute><UserProfile /></ProtectedRoute>
       } />
+      <Route path="/messages/list" element={
+        <ProtectedRoute><MessagesList /></ProtectedRoute>
+      } />
       <Route path="/messages/:matchId" element={
         <ProtectedRoute><Messages /></ProtectedRoute>
       } />
-      
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

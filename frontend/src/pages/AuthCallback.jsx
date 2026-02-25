@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { googleCallback } from '@/lib/api';
+import { getCurrentUser } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function AuthCallback() {
@@ -9,40 +9,37 @@ export default function AuthCallback() {
   const hasProcessed = useRef(false);
 
   useEffect(() => {
-    // Prevent double processing in StrictMode
     if (hasProcessed.current) return;
     hasProcessed.current = true;
 
     const processSession = async () => {
       try {
-        // Extract session_id from URL fragment
+        // Extract access_token from URL fragment (e.g. #access_token=xxx)
         const hash = location.hash.substring(1);
         const params = new URLSearchParams(hash);
-        const sessionId = params.get('session_id');
+        const accessToken = params.get('access_token') || params.get('session_id');
 
-        if (!sessionId) {
+        if (!accessToken) {
           toast.error('Session invalide');
           navigate('/login');
           return;
         }
 
-        // Exchange session_id for user data
-        const response = await googleCallback(sessionId);
-        const { user, session_token } = response.data;
+        // Store token in cookie
+        document.cookie = `access_token=${accessToken}; path=/; max-age=3600; samesite=lax`;
 
-        // Store session token in cookie (backend will handle this)
-        document.cookie = `session_token=${session_token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=none`;
+        // Fetch user to determine role
+        const response = await getCurrentUser();
+        const user = response.data;
 
-        // Redirect based on user type and profile completion
-        if (user.user_type === 'student') {
-          // Check if profile is complete
+        if (user.role === 'student') {
           navigate('/student/dashboard', { state: { user }, replace: true });
         } else {
           navigate('/landlord/dashboard', { state: { user }, replace: true });
         }
       } catch (error) {
         console.error('Auth callback error:', error);
-        toast.error('Erreur d\'authentification');
+        toast.error("Erreur d'authentification");
         navigate('/login');
       }
     };

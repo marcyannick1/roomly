@@ -53,7 +53,7 @@ export default function LandlordDashboard() {
         const response = await getCurrentUser();
         currentUser = response.data.user || response.data;
       }
-      
+
       // Toujours recharger les données utilisateur pour avoir la photo à jour
       const userId = currentUser?.id || currentUser?.user_id;
       if (userId) {
@@ -66,33 +66,33 @@ export default function LandlordDashboard() {
           console.error('Erreur lors du rechargement utilisateur:', error);
         }
       }
-      
+
       console.log('Current user in LandlordDashboard:', currentUser);
 
       const landlordId = currentUser?.id || location.state?.user?.id;
       if (landlordId) {
-        const listingsResponse = await getLandlordListings(landlordId);
+        const listingsResponse = await getLandlordListings();
         setListings(listingsResponse.data);
-        
+
         // Charger tous les likes reçus
         try {
-          const likesResponse = await getLandlordReceivedLikes(landlordId);
+          const likesResponse = await getLandlordReceivedLikes();
           setAllReceivedLikes(likesResponse.data);
         } catch (error) {
           console.log('Erreur chargement des likes:', error);
         }
-        
+
         // Charger tous les matches
         try {
-          const matchesResponse = await getLandlordMatches(landlordId);
+          const matchesResponse = await getLandlordMatches();
           setAllMatches(matchesResponse.data);
         } catch (error) {
           console.log('Erreur chargement des matches:', error);
         }
-        
+
         // Charger le profil bailleur
         try {
-          const profileResponse = await getLandlordProfile(landlordId);
+          const profileResponse = await getLandlordProfile();
           const profile = profileResponse.data;
           setLandlordProfile(profile);
           // Initialiser le formulaire avec les données utilisateur et profil
@@ -192,9 +192,9 @@ export default function LandlordDashboard() {
           <div className="bg-black/5 rounded-2xl p-4 border border-black/10">
             <div className="flex items-center gap-3">
               {user?.photo ? (
-                <img 
-                  src={user.photo} 
-                  alt={user.name} 
+                <img
+                  src={user.photo}
+                  alt={user.name}
                   className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-[#212220]"
                 />
               ) : (
@@ -233,11 +233,10 @@ export default function LandlordDashboard() {
                       toast.error('Paramètres en cours de développement');
                     }
                   }}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${
-                    isActive
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative ${isActive
                       ? 'bg-[#212220] text-[#fec629] shadow-lg'
                       : 'hover:bg-black/5 text-[#212220]/70 hover:text-[#212220]'
-                  }`}
+                    }`}
                   data-testid={`nav-${item.id}`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? 'text-[#fec629]' : 'text-[#212220]/70'}`} />
@@ -271,820 +270,820 @@ export default function LandlordDashboard() {
 
       {/* Main Content */}
       <main className="flex-1 ml-72 bg-white">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {view === 'listings' && (
-          <>
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
-                Mes annonces
-              </h2>
-              <Button
-                onClick={() => navigate('/landlord/listing/new')}
-                data-testid="create-listing-btn"
-                className="rounded-full"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Créer une annonce
-              </Button>
-            </div>
-
-            {listings.length === 0 ? (
-              <div className="text-center py-20" data-testid="no-listings">
-                <Home className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Outfit' }}>
-                  Aucune annonce
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Créez votre première annonce pour commencer
-                </p>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {view === 'listings' && (
+            <>
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Outfit' }}>
+                  Mes annonces
+                </h2>
                 <Button
                   onClick={() => navigate('/landlord/listing/new')}
-                  data-testid="create-first-listing-btn"
+                  data-testid="create-listing-btn"
                   className="rounded-full"
                 >
+                  <Plus className="w-4 h-4 mr-2" />
                   Créer une annonce
                 </Button>
               </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {listings.map((listing) => (
-                  <div
-                    key={listing.id}
-                    className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all"
-                    data-testid={`listing-${listing.id}`}
-                  >
-                    <div className="h-64 bg-muted relative">
-                      {listing.photos && listing.photos.length > 0 && listing.photos[0]?.url ? (
-                        <img
-                          src={listing.photos[0].url}
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Home className="w-16 h-16 text-muted-foreground" />
-                        </div>
-                      )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                      <div className="absolute top-3 right-3 flex gap-2">
-                        {listing.liked_by?.length > 0 && (
-                          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow">
-                            {listing.liked_by.length} like{listing.liked_by.length > 1 ? 's' : ''}
-                          </div>
-                        )}
-                        {allMatches.filter(match => match.listing_id === listing.id).length > 0 && (
-                          <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow flex items-center gap-1">
-                            <MessageCircle className="w-3 h-3" />
-                            {allMatches.filter(match => match.listing_id === listing.id).length} match{allMatches.filter(match => match.listing_id === listing.id).length > 1 ? 's' : ''}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-                        <h3 className="text-lg font-semibold" style={{ fontFamily: 'Outfit' }}>
-                          {listing.title}
-                        </h3>
-                        <div className="flex items-center justify-between text-sm opacity-90">
-                          <span>{listing.surface}m² • {listing.room_type}</span>
-                          <span className="text-lg font-bold">{listing.price}€</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                        <span className="capitalize">{listing.room_type}</span>
-                        <span>{listing.furnished ? 'Meublé' : 'Non meublé'}</span>
-                      </div>
-                      
-                      <div className="flex gap-2 mb-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => viewInterestedStudents(listing)}
-                          data-testid={`view-students-${listing.id}`}
-                          className="flex-1 rounded-full"
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Intéressés ({allReceivedLikes.filter(like => like.listing_id === listing.id).length})
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => navigate(`/listing/${listing.id}`)}
-                          data-testid={`listing-details-${listing.id}`}
-                          className="flex-1 rounded-full"
-                        >
-                          Détails
-                        </Button>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/landlord/listing/edit/${listing.id}`)}
-                          className="flex-1 rounded-full"
-                        >
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Modifier
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteClick(listing)}
-                          className="flex-1 rounded-full"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Supprimer
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {view === 'students' && (
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setView('listings')}
-              data-testid="back-to-listings"
-              className="mb-6 rounded-full"
-            >
-              ← Retour aux annonces
-            </Button>
-
-            <h2 className="text-3xl font-bold text-foreground mb-6" style={{ fontFamily: 'Outfit' }}>
-              Étudiants intéressés par : {selectedListing?.title}
-            </h2>
-
-            {(() => {
-              const filteredLikes = allReceivedLikes
-                .filter(like => like.listing_id === selectedListing?.id)
-                .filter(like => {
-                  const isMatched = allMatches.some(match => 
-                    match.student_id === like.student_id && 
-                    match.listing_id === like.listing_id
-                  );
-                  console.log('Like:', like.student_id, 'Listing:', like.listing_id, 'Is matched:', isMatched);
-                  return !isMatched;
-                });
-              
-              return filteredLikes.length === 0 ? (
-                <div className="text-center py-20">
-                  <User className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    Aucun étudiant n'a encore liké cette annonce ou tous les likes ont été matchés
+              {listings.length === 0 ? (
+                <div className="text-center py-20" data-testid="no-listings">
+                  <Home className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-foreground mb-2" style={{ fontFamily: 'Outfit' }}>
+                    Aucune annonce
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Créez votre première annonce pour commencer
                   </p>
+                  <Button
+                    onClick={() => navigate('/landlord/listing/new')}
+                    data-testid="create-first-listing-btn"
+                    className="rounded-full"
+                  >
+                    Créer une annonce
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredLikes.map((like) => (
-                  <div
-                    key={like.id}
-                    className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex gap-4 items-center">
-                      <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
-                        {like.student.photo ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {listings.map((listing) => (
+                    <div
+                      key={listing.id}
+                      className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/50 hover:shadow-md transition-all"
+                      data-testid={`listing-${listing.id}`}
+                    >
+                      <div className="h-64 bg-muted relative">
+                        {listing.photos && listing.photos.length > 0 && listing.photos[0]?.url ? (
                           <img
-                            src={like.student.photo}
-                            alt={like.student.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
-                            {like.student.name?.charAt(0).toUpperCase() || 'U'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-foreground">
-                          {like.student.name}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {like.student.university || 'Université non renseignée'}
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            navigate(`/profile/${like.student.user_id}`);
-                          }}
-                          className="rounded-full"
-                        >
-                          <User className="w-4 h-4 mr-2" />
-                          Voir profil
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            handleMatch({
-                              student: like.student,
-                              listing: selectedListing
-                            });
-                          }}
-                          className="rounded-full bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                          Matcher
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              );
-            })()}
-          </>
-        )}
-
-        {/* Vue Matches */}
-        {view === 'matches' && (
-          <>
-            <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
-              <MessageCircle className="w-8 h-8 text-green-600" />
-              Mes Matchs
-            </h2>
-
-            {allMatches.length === 0 ? (
-              <div className="text-center py-20">
-                <MessageCircle className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">
-                  Aucun match pour le moment
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Vos matchs apparaîtront ici
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {/* Grouper les matches par annonce */}
-                {Object.entries(
-                  allMatches.reduce((acc, match) => {
-                    const listingId = match.listing.id;
-                    if (!acc[listingId]) {
-                      acc[listingId] = {
-                        listing: match.listing,
-                        matches: []
-                      };
-                    }
-                    acc[listingId].matches.push(match);
-                    return acc;
-                  }, {})
-                ).map(([listingId, data]) => (
-                  <div key={listingId} className="bg-white rounded-2xl shadow-md p-6 border border-black/5">
-                    {/* En-tête de l'annonce */}
-                    <div className="flex items-start gap-4 mb-6 pb-4 border-b border-black/10">
-                      <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
-                        {data.listing.photos && data.listing.photos.length > 0 ? (
-                          <img
-                            src={data.listing.photos[0].url}
-                            alt={data.listing.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629]">
-                            <Home className="w-10 h-10" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-foreground mb-2">
-                          {data.listing.title}
-                        </h3>
-                        <p className="text-muted-foreground text-sm mb-2">
-                          {data.listing.city} • {data.listing.price}€/mois
-                        </p>
-                        <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                          <MessageCircle className="w-4 h-4" />
-                          {data.matches.length} match{data.matches.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Liste des étudiants matchés */}
-                    <div className="space-y-4">
-                      {data.matches.map((match) => (
-                        <div
-                          key={match.id}
-                          className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex gap-4 items-center">
-                            <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
-                              {match.student?.photo ? (
-                                <img
-                                  src={match.student.photo}
-                                  alt={match.student.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
-                                  {match.student?.name?.charAt(0).toUpperCase() || 'E'}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-foreground">
-                                {match.student?.name || 'Étudiant'}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {match.student?.university || 'Université non renseignée'}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Matché le {new Date(match.created_at).toLocaleDateString('fr-FR')}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Badge Match */}
-                              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
-                                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                                <span className="text-sm font-medium text-green-700">
-                                  Matché 💚
-                                </span>
-                              </div>
-                              
-                              {/* Bouton voir profil */}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  navigate(`/profile/${match.student?.user_id}`);
-                                }}
-                                className="rounded-full"
-                              >
-                                <User className="w-4 h-4 mr-2" />
-                                Voir profil
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Vue globale des intéressés */}
-        {view === 'interested' && (
-          <>
-            <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
-              <Heart className="w-8 h-8 text-red-500" />
-              Étudiants intéressés
-            </h2>
-
-            {allReceivedLikes.length === 0 ? (
-              <div className="text-center py-20">
-                <Heart className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">
-                  Aucun étudiant n'a encore liké vos annonces
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Les étudiants intéressés apparaîtront ici
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {/* Grouper les likes par annonce */}
-                {Object.entries(
-                  allReceivedLikes.reduce((acc, like) => {
-                    const listingId = like.listing.id;
-                    if (!acc[listingId]) {
-                      acc[listingId] = {
-                        listing: like.listing,
-                        likes: []
-                      };
-                    }
-                    acc[listingId].likes.push(like);
-                    return acc;
-                  }, {})
-                ).map(([listingId, data]) => (
-                  <div key={listingId} className="bg-card rounded-2xl p-6 shadow-sm border border-border/50">
-                    {/* En-tête de l'annonce */}
-                    <div className="flex gap-4 items-start mb-6 pb-4 border-b">
-                      <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                        {data.listing.photos && data.listing.photos[0]?.url ? (
-                          <img
-                            src={data.listing.photos[0].url}
-                            alt={data.listing.title}
+                            src={listing.photos[0].url}
+                            alt={listing.title}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Home className="w-8 h-8 text-muted-foreground" />
+                            <Home className="w-16 h-16 text-muted-foreground" />
                           </div>
                         )}
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                        <div className="absolute top-3 right-3 flex gap-2">
+                          {listing.liked_by?.length > 0 && (
+                            <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow">
+                              {listing.liked_by.length} like{listing.liked_by.length > 1 ? 's' : ''}
+                            </div>
+                          )}
+                          {allMatches.filter(match => match.listing_id === listing.id).length > 0 && (
+                            <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow flex items-center gap-1">
+                              <MessageCircle className="w-3 h-3" />
+                              {allMatches.filter(match => match.listing_id === listing.id).length} match{allMatches.filter(match => match.listing_id === listing.id).length > 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                          <h3 className="text-lg font-semibold" style={{ fontFamily: 'Outfit' }}>
+                            {listing.title}
+                          </h3>
+                          <div className="flex items-center justify-between text-sm opacity-90">
+                            <span>{listing.surface}m² • {listing.room_type}</span>
+                            <span className="text-lg font-bold">{listing.price}€</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-foreground mb-2" style={{ fontFamily: 'Outfit' }}>
-                          {data.listing.title}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{data.listing.city}</span>
-                          <span>•</span>
-                          <span className="font-bold text-primary">{data.listing.price}€/mois</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
-                            {data.likes.length} intéressé{data.likes.length > 1 ? 's' : ''}
-                          </span>
+
+                      <div className="p-4">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                          <span className="capitalize">{listing.room_type}</span>
+                          <span>{listing.furnished ? 'Meublé' : 'Non meublé'}</span>
+                        </div>
+
+                        <div className="flex gap-2 mb-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => viewInterestedStudents(listing)}
+                            data-testid={`view-students-${listing.id}`}
+                            className="flex-1 rounded-full"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Intéressés ({allReceivedLikes.filter(like => like.listing_id === listing.id).length})
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => navigate(`/listing/${listing.id}`)}
+                            data-testid={`listing-details-${listing.id}`}
+                            className="flex-1 rounded-full"
+                          >
+                            Détails
+                          </Button>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/landlord/listing/edit/${listing.id}`)}
+                            className="flex-1 rounded-full"
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Modifier
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteClick(listing)}
+                            className="flex-1 rounded-full"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Supprimer
+                          </Button>
                         </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
-                    {/* Liste des étudiants intéressés */}
-                    <div className="space-y-4">
-                      {data.likes.map((like) => (
-                        <div
-                          key={like.id}
-                          className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
-                        >
-                          <div className="flex gap-4 items-center">
-                            <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
-                              {like.student.photo ? (
-                                <img
-                                  src={like.student.photo}
-                                  alt={like.student.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
-                                  {like.student.name?.charAt(0).toUpperCase() || 'U'}
-                                </div>
-                              )}
+          {view === 'students' && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setView('listings')}
+                data-testid="back-to-listings"
+                className="mb-6 rounded-full"
+              >
+                ← Retour aux annonces
+              </Button>
+
+              <h2 className="text-3xl font-bold text-foreground mb-6" style={{ fontFamily: 'Outfit' }}>
+                Étudiants intéressés par : {selectedListing?.title}
+              </h2>
+
+              {(() => {
+                const filteredLikes = allReceivedLikes
+                  .filter(like => like.listing_id === selectedListing?.id)
+                  .filter(like => {
+                    const isMatched = allMatches.some(match =>
+                      match.student_id === like.student_id &&
+                      match.listing_id === like.listing_id
+                    );
+                    console.log('Like:', like.student_id, 'Listing:', like.listing_id, 'Is matched:', isMatched);
+                    return !isMatched;
+                  });
+
+                return filteredLikes.length === 0 ? (
+                  <div className="text-center py-20">
+                    <User className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">
+                      Aucun étudiant n'a encore liké cette annonce ou tous les likes ont été matchés
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredLikes.map((like) => (
+                      <div
+                        key={like.id}
+                        className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex gap-4 items-center">
+                          <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                            {like.student.photo ? (
+                              <img
+                                src={like.student.photo}
+                                alt={like.student.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                                {like.student.name?.charAt(0).toUpperCase() || 'U'}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-foreground">
+                              {like.student.name}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {like.student.university || 'Université non renseignée'}
+                            </p>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                navigate(`/profile/${like.student.user_id}`);
+                              }}
+                              className="rounded-full"
+                            >
+                              <User className="w-4 h-4 mr-2" />
+                              Voir profil
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                handleMatch({
+                                  student: like.student,
+                                  listing: selectedListing
+                                });
+                              }}
+                              className="rounded-full bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Matcher
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
+          {/* Vue Matches */}
+          {view === 'matches' && (
+            <>
+              <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+                <MessageCircle className="w-8 h-8 text-green-600" />
+                Mes Matchs
+              </h2>
+
+              {allMatches.length === 0 ? (
+                <div className="text-center py-20">
+                  <MessageCircle className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg">
+                    Aucun match pour le moment
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Vos matchs apparaîtront ici
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Grouper les matches par annonce */}
+                  {Object.entries(
+                    allMatches.reduce((acc, match) => {
+                      const listingId = match.listing.id;
+                      if (!acc[listingId]) {
+                        acc[listingId] = {
+                          listing: match.listing,
+                          matches: []
+                        };
+                      }
+                      acc[listingId].matches.push(match);
+                      return acc;
+                    }, {})
+                  ).map(([listingId, data]) => (
+                    <div key={listingId} className="bg-white rounded-2xl shadow-md p-6 border border-black/5">
+                      {/* En-tête de l'annonce */}
+                      <div className="flex items-start gap-4 mb-6 pb-4 border-b border-black/10">
+                        <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
+                          {data.listing.photos && data.listing.photos.length > 0 ? (
+                            <img
+                              src={data.listing.photos[0].url}
+                              alt={data.listing.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629]">
+                              <Home className="w-10 h-10" />
                             </div>
+                          )}
+                        </div>
 
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-foreground">
-                                {like.student.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {like.student.university || 'Université non renseignée'}
-                              </p>
-                            </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-foreground mb-2">
+                            {data.listing.title}
+                          </h3>
+                          <p className="text-muted-foreground text-sm mb-2">
+                            {data.listing.city} • {data.listing.price}€/mois
+                          </p>
+                          <span className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+                            <MessageCircle className="w-4 h-4" />
+                            {data.matches.length} match{data.matches.length > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
 
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  // Voir le profil de l'étudiant
-                                  navigate(`/profile/${like.student.user_id}`);
-                                }}
-                                className="rounded-full"
-                              >
-                                <User className="w-4 h-4 mr-2" />
-                                Voir profil
-                              </Button>
-                              
-                              {like.match && like.match.exists ? (
-                                // Badge "Matché" avec les deux photos
-                                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
-                                  <div className="flex -space-x-2">
-                                    {/* Photo étudiant */}
-                                    <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
-                                      {like.student.photo ? (
-                                        <img
-                                          src={like.student.photo}
-                                          alt={like.student.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
-                                          {like.student.name?.charAt(0).toUpperCase() || 'E'}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {/* Photo bailleur */}
-                                    <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
-                                      {like.match.landlord?.photo ? (
-                                        <img
-                                          src={like.match.landlord.photo}
-                                          alt={like.match.landlord.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
-                                          {like.match.landlord?.name?.charAt(0).toUpperCase() || 'B'}
-                                        </div>
-                                      )}
-                                    </div>
+                      {/* Liste des étudiants matchés */}
+                      <div className="space-y-4">
+                        {data.matches.map((match) => (
+                          <div
+                            key={match.id}
+                            className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex gap-4 items-center">
+                              <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                                {match.student?.photo ? (
+                                  <img
+                                    src={match.student.photo}
+                                    alt={match.student.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                                    {match.student?.name?.charAt(0).toUpperCase() || 'E'}
                                   </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-foreground">
+                                  {match.student?.name || 'Étudiant'}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {match.student?.university || 'Université non renseignée'}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Matché le {new Date(match.created_at).toLocaleDateString('fr-FR')}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {/* Badge Match */}
+                                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                                  <CheckCircle2 className="w-4 h-4 text-green-600" />
                                   <span className="text-sm font-medium text-green-700">
                                     Matché 💚
                                   </span>
                                 </div>
-                              ) : (
-                                // Bouton "Matcher"
+
+                                {/* Bouton voir profil */}
                                 <Button
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
-                                    // Créer le match
-                                    handleMatch({
-                                      student: like.student,
-                                      listing: data.listing
-                                    });
+                                    navigate(`/profile/${match.student?.user_id}`);
                                   }}
-                                  className="rounded-full bg-green-600 hover:bg-green-700"
+                                  className="rounded-full"
                                 >
-                                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                                  Matcher
+                                  <User className="w-4 h-4 mr-2" />
+                                  Voir profil
                                 </Button>
-                              )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {view === 'profile' && landlordProfile && (
-          <div className="space-y-6">
-            {/* Photo de profil */}
-            <div className="flex justify-center mb-6">
-              {user?.photo ? (
-                <img 
-                  src={user.photo} 
-                  alt={user.name} 
-                  className="w-32 h-32 rounded-full object-cover border-4 border-[#fec629] shadow-xl"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-[#212220] rounded-full flex items-center justify-center font-bold text-6xl shadow-xl text-[#fec629]">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  ))}
                 </div>
               )}
-            </div>
-            {!isEditingProfile ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Nom</h3>
-                    <p className="text-lg">{user?.name || 'Non renseigné'}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Email</h3>
-                    <p className="text-lg">{user?.email || 'Non renseigné'}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Téléphone</h3>
-                    <p className="text-lg">{landlordProfile.phone || 'Non renseigné'}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2">Entreprise</h3>
-                    <p className="text-lg">{landlordProfile.company_name || 'Non renseigné'}</p>
-                  </div>
+            </>
+          )}
+
+          {/* Vue globale des intéressés */}
+          {view === 'interested' && (
+            <>
+              <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center gap-3" style={{ fontFamily: 'Outfit' }}>
+                <Heart className="w-8 h-8 text-red-500" />
+                Étudiants intéressés
+              </h2>
+
+              {allReceivedLikes.length === 0 ? (
+                <div className="text-center py-20">
+                  <Heart className="w-24 h-24 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg">
+                    Aucun étudiant n'a encore liké vos annonces
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Les étudiants intéressés apparaîtront ici
+                  </p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex gap-3">
+              ) : (
+                <div className="space-y-8">
+                  {/* Grouper les likes par annonce */}
+                  {Object.entries(
+                    allReceivedLikes.reduce((acc, like) => {
+                      const listingId = like.listing.id;
+                      if (!acc[listingId]) {
+                        acc[listingId] = {
+                          listing: like.listing,
+                          likes: []
+                        };
+                      }
+                      acc[listingId].likes.push(like);
+                      return acc;
+                    }, {})
+                  ).map(([listingId, data]) => (
+                    <div key={listingId} className="bg-card rounded-2xl p-6 shadow-sm border border-border/50">
+                      {/* En-tête de l'annonce */}
+                      <div className="flex gap-4 items-start mb-6 pb-4 border-b">
+                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                          {data.listing.photos && data.listing.photos[0]?.url ? (
+                            <img
+                              src={data.listing.photos[0].url}
+                              alt={data.listing.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Home className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-foreground mb-2" style={{ fontFamily: 'Outfit' }}>
+                            {data.listing.title}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{data.listing.city}</span>
+                            <span>•</span>
+                            <span className="font-bold text-primary">{data.listing.price}€/mois</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                              {data.likes.length} intéressé{data.likes.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Liste des étudiants intéressés */}
+                      <div className="space-y-4">
+                        {data.likes.map((like) => (
+                          <div
+                            key={like.id}
+                            className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex gap-4 items-center">
+                              <div className="w-16 h-16 bg-muted rounded-full overflow-hidden flex-shrink-0">
+                                {like.student.photo ? (
+                                  <img
+                                    src={like.student.photo}
+                                    alt={like.student.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xl">
+                                    {like.student.name?.charAt(0).toUpperCase() || 'U'}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-foreground">
+                                  {like.student.name}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {like.student.university || 'Université non renseignée'}
+                                </p>
+                              </div>
+
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Voir le profil de l'étudiant
+                                    navigate(`/profile/${like.student.user_id}`);
+                                  }}
+                                  className="rounded-full"
+                                >
+                                  <User className="w-4 h-4 mr-2" />
+                                  Voir profil
+                                </Button>
+
+                                {like.match && like.match.exists ? (
+                                  // Badge "Matché" avec les deux photos
+                                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2">
+                                    <div className="flex -space-x-2">
+                                      {/* Photo étudiant */}
+                                      <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
+                                        {like.student.photo ? (
+                                          <img
+                                            src={like.student.photo}
+                                            alt={like.student.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
+                                            {like.student.name?.charAt(0).toUpperCase() || 'E'}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {/* Photo bailleur */}
+                                      <div className="w-8 h-8 bg-muted rounded-full overflow-hidden border-2 border-white flex-shrink-0">
+                                        {like.match.landlord?.photo ? (
+                                          <img
+                                            src={like.match.landlord.photo}
+                                            alt={like.match.landlord.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-[#212220] text-[#fec629] font-bold text-xs">
+                                            {like.match.landlord?.name?.charAt(0).toUpperCase() || 'B'}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-sm font-medium text-green-700">
+                                      Matché 💚
+                                    </span>
+                                  </div>
+                                ) : (
+                                  // Bouton "Matcher"
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      // Créer le match
+                                      handleMatch({
+                                        student: like.student,
+                                        listing: data.listing
+                                      });
+                                    }}
+                                    className="rounded-full bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    Matcher
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {view === 'profile' && landlordProfile && (
+            <div className="space-y-6">
+              {/* Photo de profil */}
+              <div className="flex justify-center mb-6">
+                {user?.photo ? (
+                  <img
+                    src={user.photo}
+                    alt={user.name}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-[#fec629] shadow-xl"
+                  />
+                ) : (
+                  <div className="w-32 h-32 bg-[#212220] rounded-full flex items-center justify-center font-bold text-6xl shadow-xl text-[#fec629]">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
+              {!isEditingProfile ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Nom</h3>
+                      <p className="text-lg">{user?.name || 'Non renseigné'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Email</h3>
+                      <p className="text-lg">{user?.email || 'Non renseigné'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Téléphone</h3>
+                      <p className="text-lg">{landlordProfile.phone || 'Non renseigné'}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="text-sm font-semibold text-gray-600 mb-2">Entreprise</h3>
+                      <p className="text-lg">{landlordProfile.company_name || 'Non renseigné'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => {
+                          // Initialiser le formulaire avec les données actuelles
+                          setProfileForm({
+                            ...landlordProfile,
+                            name: user?.name || '',
+                            email: user?.email || ''
+                          });
+                          setIsEditingProfile(true);
+                        }}
+                        className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
+                      >
+                        Modifier mon profil
+                      </Button>
+                      {user?.photo ? (
+                        <Button
+                          onClick={async () => {
+                            if (window.confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
+                              try {
+                                const userId = user?.id ?? user?.user_id;
+                                await deleteProfilePhoto(userId);
+                                const userResponse = await getUserById(userId);
+                                setUser(userResponse.data);
+                                toast.success('Photo supprimée');
+                              } catch (error) {
+                                console.error(error);
+                                toast.error('Erreur lors de la suppression');
+                              }
+                            }
+                          }}
+                          variant="outline"
+                          className="border-red-500 text-red-500 hover:bg-red-50 font-semibold"
+                        >
+                          Supprimer la photo
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.onchange = async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                try {
+                                  const userId = user?.id ?? user?.user_id;
+                                  await uploadProfilePhoto(userId, file);
+                                  const userResponse = await getUserById(userId);
+                                  setUser(userResponse.data);
+                                  toast.success('Photo ajoutée avec succès');
+                                } catch (error) {
+                                  console.error(error);
+                                  toast.error("Erreur lors de l'ajout de la photo");
+                                }
+                              }
+                            };
+                            input.click();
+                          }}
+                          variant="outline"
+                          className="border-[#fec629] text-[#fec629] hover:bg-[#fec629] hover:text-[#212220] font-semibold"
+                        >
+                          Ajouter une photo
+                        </Button>
+                      )}
+                    </div>
                     <Button
+                      onClick={async () => {
+                        if (window.confirm('⚠️ ATTENTION : Cette action est irréversible. Voulez-vous vraiment supprimer définitivement votre compte et toutes vos données ?')) {
+                          try {
+                            const userId = user?.id ?? user?.user_id;
+                            await deleteUserAccount(userId);
+                            toast.success('Compte supprimé');
+                            document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            navigate('/login');
+                          } catch (error) {
+                            console.error(error);
+                            toast.error('Erreur lors de la suppression du compte');
+                          }
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-semibold"
+                    >
+                      Supprimer mon compte
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    // Mettre à jour le profil landlord
+                    await updateLandlordProfile(profileForm);
+                    setLandlordProfile(profileForm);
+
+                    // Mettre à jour les infos utilisateur (nom, email)
+                    if (profileForm.name !== user.name || profileForm.email !== user.email) {
+                      const userId = user?.id ?? user?.user_id;
+                      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/users/${userId}`, {
+                        method: 'PATCH',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${document.cookie.split('session_token=')[1]?.split(';')[0]}`
+                        },
+                        body: JSON.stringify({
+                          name: profileForm.name,
+                          email: profileForm.email
+                        })
+                      });
+                      if (response.ok) {
+                        const userResponse = await getUserById(userId);
+                        setUser(userResponse.data);
+                      }
+                    }
+
+                    setIsEditingProfile(false);
+                    toast.success('Profil mis à jour');
+                  } catch (error) {
+                    toast.error('Erreur lors de la mise à jour');
+                  }
+                }} className="space-y-6">
+                  <div>
+                    <Label htmlFor="name">Nom complet</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={profileForm.name || ''}
+                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                      className="mt-2 h-12 rounded-xl"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profileForm.email || ''}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      className="mt-2 h-12 rounded-xl"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profileForm.phone || ''}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      className="mt-2 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="company_name">Nom de l'entreprise</Label>
+                    <Input
+                      id="company_name"
+                      value={profileForm.company_name || ''}
+                      onChange={(e) => setProfileForm({ ...profileForm, company_name: e.target.value })}
+                      className="mt-2 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button type="submit" className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold">
+                      Enregistrer
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => {
-                        // Initialiser le formulaire avec les données actuelles
+                        setIsEditingProfile(false);
+                        // Réinitialiser le formulaire avec les données actuelles
                         setProfileForm({
                           ...landlordProfile,
                           name: user?.name || '',
                           email: user?.email || ''
                         });
-                        setIsEditingProfile(true);
                       }}
-                      className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold"
+                      variant="outline"
                     >
-                      Modifier mon profil
+                      Annuler
                     </Button>
-                    {user?.photo ? (
-                      <Button
-                        onClick={async () => {
-                          if (window.confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')) {
-                            try {
-                              const userId = user?.id ?? user?.user_id;
-                              await deleteProfilePhoto(userId);
-                              const userResponse = await getUserById(userId);
-                              setUser(userResponse.data);
-                              toast.success('Photo supprimée');
-                            } catch (error) {
-                              console.error(error);
-                              toast.error('Erreur lors de la suppression');
-                            }
-                          }
-                        }}
-                        variant="outline"
-                        className="border-red-500 text-red-500 hover:bg-red-50 font-semibold"
-                      >
-                        Supprimer la photo
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => {
-                          const input = document.createElement('input');
-                          input.type = 'file';
-                          input.accept = 'image/*';
-                          input.onchange = async (e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              try {
-                                const userId = user?.id ?? user?.user_id;
-                                await uploadProfilePhoto(userId, file);
-                                const userResponse = await getUserById(userId);
-                                setUser(userResponse.data);
-                                toast.success('Photo ajoutée avec succès');
-                              } catch (error) {
-                                console.error(error);
-                                toast.error("Erreur lors de l'ajout de la photo");
-                              }
-                            }
-                          };
-                          input.click();
-                        }}
-                        variant="outline"
-                        className="border-[#fec629] text-[#fec629] hover:bg-[#fec629] hover:text-[#212220] font-semibold"
-                      >
-                        Ajouter une photo
-                      </Button>
-                    )}
                   </div>
-                  <Button
-                    onClick={async () => {
-                      if (window.confirm('⚠️ ATTENTION : Cette action est irréversible. Voulez-vous vraiment supprimer définitivement votre compte et toutes vos données ?')) {
-                        try {
-                          const userId = user?.id ?? user?.user_id;
-                          await deleteUserAccount(userId);
-                          toast.success('Compte supprimé');
-                          document.cookie = 'session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                          navigate('/login');
-                        } catch (error) {
-                          console.error(error);
-                          toast.error('Erreur lors de la suppression du compte');
-                        }
-                      }
-                    }}
-                    variant="outline"
-                    className="w-full border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-semibold"
-                  >
-                    Supprimer mon compte
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  // Mettre à jour le profil landlord
-                  await updateLandlordProfile(profileForm);
-                  setLandlordProfile(profileForm);
-                  
-                  // Mettre à jour les infos utilisateur (nom, email)
-                  if (profileForm.name !== user.name || profileForm.email !== user.email) {
-                    const userId = user?.id ?? user?.user_id;
-                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/users/${userId}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${document.cookie.split('session_token=')[1]?.split(';')[0]}`
-                      },
-                      body: JSON.stringify({
-                        name: profileForm.name,
-                        email: profileForm.email
-                      })
-                    });
-                    if (response.ok) {
-                      const userResponse = await getUserById(userId);
-                      setUser(userResponse.data);
-                    }
-                  }
-                  
-                  setIsEditingProfile(false);
-                  toast.success('Profil mis à jour');
-                } catch (error) {
-                  toast.error('Erreur lors de la mise à jour');
-                }
-              }} className="space-y-6">
-                <div>
-                  <Label htmlFor="name">Nom complet</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={profileForm.name || ''}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className="mt-2 h-12 rounded-xl"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileForm.email || ''}
-                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className="mt-2 h-12 rounded-xl"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profileForm.phone || ''}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="mt-2 h-12 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="company_name">Nom de l'entreprise</Label>
-                  <Input
-                    id="company_name"
-                    value={profileForm.company_name || ''}
-                    onChange={(e) => setProfileForm({ ...profileForm, company_name: e.target.value })}
-                    className="mt-2 h-12 rounded-xl"
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button type="submit" className="flex-1 bg-[#fec629] hover:bg-[#e5b525] text-[#212220] font-semibold">
-                    Enregistrer
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setIsEditingProfile(false);
-                      // Réinitialiser le formulaire avec les données actuelles
-                      setProfileForm({
-                        ...landlordProfile,
-                        name: user?.name || '',
-                        email: user?.email || ''
-                      });
-                    }}
-                    variant="outline"
-                  >
-                    Annuler
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
-      </div>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="rounded-3xl bg-white shadow-2xl border-0 max-w-md">
-          <div className="flex flex-col gap-6 py-6">
-            <div className="flex flex-col gap-3">
-              <AlertDialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
-                    <Trash2 className="w-6 h-6 text-red-600" />
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent className="rounded-3xl bg-white shadow-2xl border-0 max-w-md">
+            <div className="flex flex-col gap-6 py-6">
+              <div className="flex flex-col gap-3">
+                <AlertDialogHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-red-600" />
+                    </div>
+                    <AlertDialogTitle className="text-2xl font-bold text-[#212220]">Supprimer l'annonce ?</AlertDialogTitle>
                   </div>
-                  <AlertDialogTitle className="text-2xl font-bold text-[#212220]">Supprimer l'annonce ?</AlertDialogTitle>
-                </div>
-                <AlertDialogDescription className="text-base text-[#212220]/70 leading-relaxed mt-4">
-                  Êtes-vous certain de vouloir supprimer l'annonce <span className="font-bold text-[#212220]">"{listingToDelete?.title}"</span> ? 
-                  <span className="block mt-2 text-red-600 font-medium">Cette action est irréversible et supprimera aussi toutes les photos associées.</span>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-            </div>
+                  <AlertDialogDescription className="text-base text-[#212220]/70 leading-relaxed mt-4">
+                    Êtes-vous certain de vouloir supprimer l'annonce <span className="font-bold text-[#212220]">"{listingToDelete?.title}"</span> ?
+                    <span className="block mt-2 text-red-600 font-medium">Cette action est irréversible et supprimera aussi toutes les photos associées.</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+              </div>
 
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
-              <AlertDialogCancel className="rounded-full px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#212220] font-medium transition-colors">
-                Annuler
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleConfirmDelete}
-                className="rounded-full px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors shadow-md"
-              >
-                <Trash2 className="w-4 h-4 mr-2 inline" />
-                Supprimer
-              </AlertDialogAction>
+              <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                <AlertDialogCancel className="rounded-full px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#212220] font-medium transition-colors">
+                  Annuler
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleConfirmDelete}
+                  className="rounded-full px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors shadow-md"
+                >
+                  <Trash2 className="w-4 h-4 mr-2 inline" />
+                  Supprimer
+                </AlertDialogAction>
+              </div>
             </div>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      {/* Animation de match */}
-      <MatchAnimation
-        show={showMatchAnimation}
-        onComplete={() => setShowMatchAnimation(false)}
-      />
+        {/* Animation de match */}
+        <MatchAnimation
+          show={showMatchAnimation}
+          onComplete={() => setShowMatchAnimation(false)}
+        />
       </main>
     </div>
   );
