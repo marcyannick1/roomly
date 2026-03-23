@@ -22,11 +22,34 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle response errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Extract error message from Pydantic validation errors
+    if (error.response?.data?.detail) {
+      if (Array.isArray(error.response.data.detail)) {
+        // Pydantic validation errors
+        const messages = error.response.data.detail.map((err) => {
+          if (typeof err === 'object' && err.msg) {
+            return err.msg;
+          }
+          return err;
+        });
+        error.message = messages.join(', ');
+      } else if (typeof error.response.data.detail === 'string') {
+        error.message = error.response.data.detail;
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth
 export const register = (data) => api.post('/auth/register', data);
 export const login = (data) => api.post('/auth/login', data);
 export const googleCallback = (sessionId) => api.post('/auth/google/callback', { session_id: sessionId });
-export const getCurrentUser = () => api.get('/auth/me');
+export const getCurrentUser = () => api.get('/users/me');
 export const logout = () => api.post('/auth/logout');
 
 // Users
